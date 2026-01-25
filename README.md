@@ -1,4 +1,4 @@
-# Pacific Islands Internet Exchange (PacIX) Reference Design
+# Pacific Islands Internet Exchange (PacIXP) Reference Design
 
 ![Status](https://img.shields.io/badge/Status-Production%20Ready-green)
 ![License](https://img.shields.io/badge/License-MIT-blue)
