@@ -1,0 +1,25 @@
+graph TD
+    subgraph "Site A: Samoa"
+        A_SW1[Switch 1 (VTEP)] --- A_SW2[Switch 2 (VTEP)]
+        A_RS1[Route Server 1] --- A_SW1
+        A_RS2[Route Server 2] --- A_SW2
+        Member_A1[ISP A] --- A_SW1
+        Member_A2[Gov Net] --- A_SW2
+    end
+
+    subgraph "Site B: Fiji"
+        B_SW1[Switch 1 (VTEP)] --- B_SW2[Switch 2 (VTEP)]
+        B_RS1[Route Server 1] --- B_SW1
+        B_RS2[Route Server 2] --- B_SW2
+        Member_B1[ISP B] --- B_SW1
+        Member_B2[University] --- B_SW2
+    end
+
+    subgraph "Inter-Site Backbone (Underlay)"
+        Router_A[Site A Edge] --- Router_B[Site B Edge]
+    end
+
+    A_SW1 -.->|VXLAN Tunnel| B_SW1
+    A_SW2 -.->|VXLAN Tunnel| B_SW2
+    A_SW1 -.->|IBGP EVPN| A_SW2
+    B_SW1 -.->|IBGP EVPN| B_SW2
