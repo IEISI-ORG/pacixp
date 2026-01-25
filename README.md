@@ -135,6 +135,7 @@ If you are a for-profit entity, commercial integrator, or consultant wishing to 
 
 **Need Professional Help?**
 We offer paid support packages, commercial licensing, and dedicated deployment assistance.
+
 📩 **Contact us:** contact@ieisi.org
 
 **Acknowledgments:**
