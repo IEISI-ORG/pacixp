@@ -134,14 +134,3 @@ An IXP is 10% technology and 90% trust.
 3.  **Mailing List:**
     *   `ops@pacixp.net`: For operational announcements (maintenance).
     *   `public@pacixp.net`: For general discussion.
-
----
-
-## 5. Certification & Compliance
-To maintain standards, PacIXP will implement a **"Certified Peer"** badge.
-
-*   **Bronze:** Connected and Peering.
-*   **Silver:** PeeringDB profile complete + NOC contacts updated.
-*   **Gold (MANRS):** RPKI ROAs created + Anti-spoofing enabled.
-
-*This encourages members to improve their own network hygiene gamification.*
