@@ -1,9 +1,3 @@
-This document outlines the **Automation Strategy** for **PacIXP**.
-
-Given the operating environment (limited staff, high reliability requirements), our strategy follows a **"Source of Truth"** philosophy. We avoid ad-hoc manual changes. Instead, the central database drives the configuration of the network.
-
----
-
 # PacIXP Automation Strategy
 
 ## 1. Core Philosophy: The "Source of Truth"
