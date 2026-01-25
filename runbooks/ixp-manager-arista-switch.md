@@ -19,14 +19,14 @@ Before IXP Manager can talk to the switch, we must configure SNMP and ensure the
 configure terminal
 
 ! 1. Configure SNMP (Read-Only)
-! Replace 'pacix-public' with your secret community string
+! Replace 'PacIXP-public' with your secret community string
 ! This MUST match what you enter in IXP Manager later
-snmp-server community pacix-public ro
+snmp-server community PacIXP-public ro
 
 ! 2. Identify the Chassis
 ! IXP Manager needs a unique hostname and location
-hostname PacIX-SiteA-SW1
-snmp-server contact "NOC <noc@pacix.net>"
+hostname PacIXP-SiteA-SW1
+snmp-server contact "NOC <noc@PacIXP.net>"
 snmp-server location "Apia Cable Landing Station, Rack 3"
 
 ! 3. Enable sFlow (Traffic Statistics)
@@ -74,12 +74,12 @@ Log in to your IXP Manager Web GUI (`http://<your-ip>/admin`).
 1.  Navigate to **Infrastructure** -> **Switches**.
 2.  Click **Add Switch**.
 3.  Fill in the **General** tab:
-    *   **Name:** `PacIX-SiteA-SW1`
+    *   **Name:** `PacIXP-SiteA-SW1`
     *   **Hostname/IP:** `192.168.100.11` (The Management IP).
     *   **Type:** `Arista Switches (EOS)`.
     *   **Cabinet:** Select `Site A - Rack 1`.
 4.  Fill in the **Poller** tab (Critical for Graphs):
-    *   **SNMP Community:** `pacix-public` (Must match Phase 1).
+    *   **SNMP Community:** `PacIXP-public` (Must match Phase 1).
     *   **SNMP Version:** `v2c`.
     *   **Polling Status:** `Enabled`.
 5.  Click **Save Changes**.
@@ -102,7 +102,7 @@ You don't just "assign a port." You create a **Switch Port** object that maps a 
 
 1.  Navigate to **Infrastructure** -> **Switch Ports**.
 2.  Click **Add Switch Port**.
-    *   **Switch:** `PacIX-SiteA-SW1`.
+    *   **Switch:** `PacIXP-SiteA-SW1`.
     *   **Type:** `Traffic / Peering`.
     *   **Name:** `Ethernet3` (Type exactly as it appears in CLI).
     *   **Configured Speed:** `10 Gbit/s`.
