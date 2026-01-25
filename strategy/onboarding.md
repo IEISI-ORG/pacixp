@@ -4,7 +4,7 @@
 | :--- | :--- |
 | **Objective** | Ensure sustainable local operations and seamless member integration. |
 | **Scope** | Technical Operations, Administrative Process, Community Building. |
-| **Partners** | APNIC, NSRC, UNESCA. |
+| **Partners** | APNIC, UN ESCAP, ISOC Foundation, ISOC |
 
 ---
 
