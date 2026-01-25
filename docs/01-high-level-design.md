@@ -39,30 +39,41 @@ Each site consists of two high-capacity switches and two x86 servers.
 Sites are connected via commercial IP transit or dark fiber (where available). The design assumes a standard Layer 3 IP path between Site A (Samoa) and Site B (Fiji) with a minimum MTU of 1600 bytes (to accommodate VXLAN headers).
 
 ```mermaid
-graph TD
-    subgraph "Site: Samoa (APW)"
-        APW_SW1[Switch 1 (VTEP)] ===|100G ISL| APW_SW2[Switch 2 (VTEP)]
-        APW_RS1[Route Server 1] --- APW_SW1
-        APW_RS2[Route Server 2] --- APW_SW2
-        Member_A[ISP A] --- APW_SW1
-        Member_B[ISP B] --- APW_SW2
-    end
-
-    subgraph "Site: Fiji (SUV)"
-        SUV_SW1[Switch 1 (VTEP)] ===|100G ISL| SUV_SW2[Switch 2 (VTEP)]
-        SUV_RS1[Route Server 1] --- SUV_SW1
-        SUV_RS2[Route Server 2] --- SUV_SW2
-        Member_C[ISP C] --- SUV_SW1
-    end
-
-    subgraph "WAN / Underlay"
-        WAN_RTR_A[Site Gateway A]
-        WAN_RTR_B[Site Gateway B]
-    end
-
-    APW_SW1 & APW_SW2 --- WAN_RTR_A
-    SUV_SW1 & SUV_SW2 --- WAN_RTR_B
-    WAN_RTR_A -.-|Submarine Cable / IP Transit| WAN_RTR_B
+---
+config:
+  layout: elk
+---
+flowchart TB
+ subgraph subGraph0["Site A: Samoa"]
+        A_SW2["Switch 2 (VTEP)"]
+        A_SW1["Switch 1 (VTEP)"]
+        A_RS1["Route Server 1"]
+        A_RS2["Route Server 2"]
+        Member_A1["ISP A"]
+        Member_A2["Gov Net"]
+  end
+ subgraph subGraph1["Site B: Fiji"]
+        B_SW2["Switch 2 (VTEP)"]
+        B_SW1["Switch 1 (VTEP)"]
+        B_RS1["Route Server 1"]
+        B_RS2["Route Server 2"]
+        Member_B1["ISP B"]
+        Member_B2["University"]
+  end
+    A_SW1 --- A_SW2
+    A_RS1 --- A_SW1
+    A_RS2 --- A_SW2
+    Member_A1 --- A_SW1
+    Member_A2 --- A_SW2
+    B_SW1 --- B_SW2
+    B_RS1 --- B_SW1
+    B_RS2 --- B_SW2
+    Member_B1 --- B_SW1
+    Member_B2 --- B_SW2
+    A_SW1 -. VXLAN Tunnel .-> B_SW1
+    A_SW2 -. VXLAN Tunnel .-> B_SW2
+    A_SW1 -. IBGP EVPN .-> A_SW2
+    B_SW1 -. IBGP EVPN .-> B_SW2
 ```
 
 ---
