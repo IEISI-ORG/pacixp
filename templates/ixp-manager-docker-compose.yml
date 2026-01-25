@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  # ------------------------------------------------------------------
+  # DATABASE SERVICE (MariaDB)
+  # ------------------------------------------------------------------
+  db:
+    image: mariadb:10.6
+    restart: unless-stopped
+    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
+    volumes:
+      - db-data:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+      - MYSQL_DATABASE=${DB_DATABASE}
+      - MYSQL_USER=${DB_USERNAME}
+    networks:
+      - ixp-backend
+
+  # ------------------------------------------------------------------
+  # APP SERVICE (IXP Manager Core - PHP-FPM)
+  # ------------------------------------------------------------------
+  ixp-manager:
+    image: inex/ixp-manager:latest
+    restart: unless-stopped
+    depends_on:
+      - db
+    volumes:
+      # Mount your local .env file into the container
+      - ./.env:/var/www/ixp-manager/.env
+      # Persist storage (logos, skins)
+      - ixp-storage:/var/www/ixp-manager/storage
+      # Custom skinning (optional)
+      # - ./skins:/var/www/ixp-manager/resources/skins
+    environment:
+      - DB_HOST=db
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_DATABASE=${DB_DATABASE}
+    networks:
+      - ixp-backend
+
+  # ------------------------------------------------------------------
+  # WEB SERVER (Nginx)
+  # ------------------------------------------------------------------
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Share static assets from the app container
+      - ixp-storage:/var/www/ixp-manager/storage
+      # Custom Nginx config (optional, uses default if omitted)
+      # - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - ixp-manager
+    networks:
+      - ixp-backend
+
+  # ------------------------------------------------------------------
+  # TASK SCHEDULER (Cron / Artisan)
+  # Required for generating router configs and updating stats
+  # ------------------------------------------------------------------
+  cron:
+    image: inex/ixp-manager:latest
+    restart: unless-stopped
+    depends_on:
+      - db
+      - ixp-manager
+    volumes:
+      - ./.env:/var/www/ixp-manager/.env
+      - ixp-storage:/var/www/ixp-manager/storage
+    # Run the laravel scheduler every minute
+    entrypoint: ["/usr/sbin/crond", "-f", "-l", "8"]
+    networks:
+      - ixp-backend
+
+  # ------------------------------------------------------------------
+  # CACHE (Redis) - Optional but recommended for performance
+  # ------------------------------------------------------------------
+  redis:
+    image: redis:alpine
+    restart: unless-stopped
+    networks:
+      - ixp-backend
+
+volumes:
+  db-data:
+    driver: local
+  ixp-storage:
+    driver: local
+
+networks:
+  ixp-backend:
+    driver: bridge
