@@ -123,20 +123,10 @@ Please ensure all network configurations are validated against a virtual lab (e.
 
 ## 📄 License & Commercial Support
 
-**© 2026 Terry Sweetser, IEISI.ORG. All Rights Reserved.**
-
 This project is licensed under the **CC BY-NC-SA 4.0** (Creative Commons Attribution-NonCommercial-ShareAlike) license.
 
 ### 🤝 For Community IXPs
 **We believe in the open Internet.** If you are a non-profit, cooperative, or community-governed IXP (even if you charge standard port fees to cover costs), you are **free to use, modify, and deploy** this architecture without restriction. We only ask that you credit the PacIXP project.
-
-### 💼 For Commercial Use
-If you are a for-profit entity, commercial integrator, or consultant wishing to use this architecture for commercial gain, you **must obtain a commercial license**.
-
-**Need Professional Help?**
-We offer paid support packages, commercial licensing, and dedicated deployment assistance.
-
-📩 **Contact us:** contact@ieisi.org
 
 **Acknowledgments:**
 *   Based on best practices from **Euro-IX** and **APNIC**.
