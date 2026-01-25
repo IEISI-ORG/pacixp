@@ -14,11 +14,11 @@ DB_DATABASE=ixp
 DB_USERNAME=ixp
 
 # Application URL (Change this to your FQDN)
-APP_URL=http://ixp.pacix.net
+APP_URL=http://ixp.PacIXP.net
 IXP_TRUSTED_PROXIES=10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
 
 # Identity
-IXP_NAME="PacIX"
+IXP_NAME="PacIXP"
 IXP_COUNTRY="WS"
 ```
 
@@ -150,9 +150,9 @@ networks:
     # Create the Admin User
     docker compose run --rm ixp-manager php artisan ixp:admin-create \
       --user="admin" \
-      --email="admin@pacix.net" \
+      --email="admin@PacIXP.net" \
       --password="YourStrongAdminPassword" \
-      --name="PacIX Admin"
+      --name="PacIXP Admin"
     ```
 
 4.  **Start Services:**
