@@ -1,4 +1,21 @@
-Attribution-NonCommercial-ShareAlike 4.0 International
+PACIFIC ISLANDS INTERNET EXCHANGE (PacIXP) REFERENCE DESIGN
+Copyright (c) 2026 Terry Sweetser, IEISI.ORG
+
+GRANT OF PERMISSION FOR COMMUNITY USE:
+The Licensor grants a non-exclusive, royalty-free permission to "Community Internet Exchange Points" to use, modify, and deploy this material for their operations, notwithstanding the NonCommercial restrictions of the accompanying license. 
+
+For the purposes of this exception, a "Community Internet Exchange Point" is defined as a network exchange point that is:
+1. Operated on a not-for-profit or cost-recovery basis, OR
+2. Governed by a community membership association (Muti-stakeholder model).
+
+Charging cost-recovery fees (port fees) to members does not disqualify an IXP from this permission.
+
+COMMERCIAL USE:
+Any use of this material by commercial entities (including for-profit data centers, commercial carriers, or paid consultants using this design to deliver client projects) requires a separate commercial license. Please contact tcs@ieisi.org for commercial licensing and paid support options.
+
+----------------------------------------------------------------------------------
+
+This work is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.
 
 =======================================================================
 
