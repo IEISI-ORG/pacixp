@@ -1,0 +1,89 @@
+name: pacixp
+
+topology:
+  nodes:
+    # ---------------------------------------------------------
+    # THE FABRIC (Arista cEOS)
+    # ---------------------------------------------------------
+    sw1:
+      kind: ceos
+      image: ceos:4.32.0F  # CHANGE THIS to match your local tag
+      startup-config: configs/sw1.cfg
+      mgmt-ipv4: 172.20.20.11
+      env:
+        INTFTYPE: eth
+
+    sw2:
+      kind: ceos
+      image: ceos:4.32.0F
+      startup-config: configs/sw2.cfg
+      mgmt-ipv4: 172.20.20.12
+      env:
+        INTFTYPE: eth
+
+    # ---------------------------------------------------------
+    # THE ROUTE SERVER (BIRD)
+    # ---------------------------------------------------------
+    rs1:
+      kind: linux
+      image: pierky/bird:2.0.8
+      binds:
+        - configs/rs1.conf:/etc/bird/bird.conf
+      exec:
+        - ip addr add 192.0.2.254/24 dev eth1
+      mgmt-ipv4: 172.20.20.20
+
+    # ---------------------------------------------------------
+    # TEST MEMBERS (FRRouting)
+    # ---------------------------------------------------------
+    member1: &member
+      kind: linux
+      image: frrouting/frr:v8.4.0
+      binds:
+        - configs/peers/member1.conf:/etc/frr/frr.conf
+      exec:
+        # Assign IP on Peering LAN
+        - ip addr add 192.0.2.1/24 dev eth1
+    
+    member2:
+      <<: *member
+      binds:
+        - configs/peers/member2.conf:/etc/frr/frr.conf
+      exec:
+        - ip addr add 192.0.2.2/24 dev eth1
+
+    member3:
+      <<: *member
+      binds:
+        - configs/peers/member3.conf:/etc/frr/frr.conf
+      exec:
+        - ip addr add 192.0.2.3/24 dev eth1
+
+    member4:
+      <<: *member
+      binds:
+        - configs/peers/member4.conf:/etc/frr/frr.conf
+      exec:
+        - ip addr add 192.0.2.4/24 dev eth1
+
+    member5:
+      <<: *member
+      binds:
+        - configs/peers/member5.conf:/etc/frr/frr.conf
+      exec:
+        - ip addr add 192.0.2.5/24 dev eth1
+
+  links:
+    # Backbone (SW1 <-> SW2)
+    - endpoints: ["sw1:eth1", "sw2:eth1"]
+    - endpoints: ["sw1:eth2", "sw2:eth2"]
+
+    # Local Connections (SW1)
+    - endpoints: ["rs1:eth1", "sw1:eth10"]
+    - endpoints: ["member1:eth1", "sw1:eth3"]
+    - endpoints: ["member2:eth1", "sw1:eth4"]
+    - endpoints: ["member3:eth1", "sw1:eth5"]
+
+    # Remote Connections (SW2) - Tests VXLAN
+    - endpoints: ["member4:eth1", "sw2:eth3"]
+    - endpoints: ["member5:eth1", "sw2:eth4"]
