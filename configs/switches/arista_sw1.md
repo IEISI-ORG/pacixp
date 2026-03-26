@@ -82,27 +82,29 @@ vlan 999
 interface Ethernet1
    description INFRA: UPLINK-TO-WAN-RTR
    no switchport
-   ip address 172.16.0.1/31
-   ipv6 enable
+   mtu 9214
+   ip address 198.51.100.64/31
+   ipv6 address 3fff:0:3::/127
 !
 ! Interface facing the Peer Switch (SW2)
 interface Ethernet2
    description INFRA: ISL-TO-SW2
    no switchport
-   ip address 172.16.0.3/31
-   ipv6 enable
+   mtu 9214
+   ip address 198.51.100.66/31
+   ipv6 address 3fff:0:3::2/127
 !
 ! Loopback for VTEP (VXLAN Source)
 interface Loopback0
    description EVPN-VTEP-SOURCE
-   ip address 10.0.0.11/32
-   ipv6 address fd00::11/128
+   ip address 198.51.100.11/32
+   ipv6 address 3fff:0:2::11/128
 !
 ! Management Interface
 interface Management1
    description OOB-MANAGEMENT
    vrf MGMT
-   ip address 192.168.100.11/24
+   ip address 203.0.113.11/24
 !
 ! ------------------------------------------------------------------
 ! INTERFACES - IXP MEMBERS
@@ -149,50 +151,71 @@ interface Vxlan1
    vxlan udp-port 4789
    ! Map VLAN 10 to VNI 10010
    vxlan vlan 10 vni 10010
-   ! Head-end Replication (Flood to other VTEPs list)
-   vxlan vlan 10 flood vtep 10.0.0.12 10.0.0.21 10.0.0.22
+   ! BUM replication is handled dynamically via EVPN Type 3 routes.
+   ! No static VTEP flood list is needed. Remote VTEPs are discovered
+   ! automatically through the BGP EVPN confederation control plane.
 !
 ! ------------------------------------------------------------------
 ! ROUTING - UNDERLAY (OSPF)
 ! ------------------------------------------------------------------
 ! Distribute Loopback IPs so VTEPs can reach each other
 router ospf 1
-   router-id 10.0.0.11
+   router-id 198.51.100.11
    passive-interface default
    no passive-interface Ethernet1
    no passive-interface Ethernet2
-   network 10.0.0.11/32 area 0.0.0.0
-   network 172.16.0.0/24 area 0.0.0.0
+   network 198.51.100.11/32 area 0.0.0.0
+   network 198.51.100.64/26 area 0.0.0.0
    max-lsa 12000
 !
 ! ------------------------------------------------------------------
-! ROUTING - OVERLAY (BGP EVPN)
+! ROUTING - OVERLAY (BGP EVPN CONFEDERATION)
 ! ------------------------------------------------------------------
-router bgp 64500
-   router-id 10.0.0.11
+! This switch is in sub-AS 64501 (Site A: Samoa).
+! The confederation identifier 64500 is the externally-visible AS.
+! Route Targets reference the confederation ID (64500), not the sub-AS.
+!
+! BGP topology mirrors the physical topology:
+!   - Intra-site ISL  <-->  iBGP session (same sub-AS)
+!   - Inter-site VXLAN  <-->  confederation eBGP session (different sub-AS)
+router bgp 64501
+   bgp confederation identifier 64500
+   bgp confederation peers 64502 64503
+   router-id 198.51.100.11
    no bgp default ipv4-unicast
    distance bgp 20 200 200
    !
-   ! Peer with SW2 (Same Site)
-   neighbor 10.0.0.12 remote-as 64500
-   neighbor 10.0.0.12 update-source Loopback0
-   neighbor 10.0.0.12 description iBGP-PEER-SW2
-   neighbor 10.0.0.12 send-community
+   ! Intra-Site: SW2 shares sub-AS 64501 — standard iBGP behavior.
+   ! This session mirrors the physical ISL between SW1 and SW2.
+   neighbor 198.51.100.12 remote-as 64501
+   neighbor 198.51.100.12 update-source Loopback0
+   neighbor 198.51.100.12 description iBGP-INTRASITE-SW2
+   neighbor 198.51.100.12 send-community extended
+   neighbor 198.51.100.12 timers 10 30
    !
-   ! Peer with Site B (Remote Site) - Full Mesh or Route Reflector
-   neighbor 10.0.0.21 remote-as 64500
-   neighbor 10.0.0.21 update-source Loopback0
-   neighbor 10.0.0.21 description iBGP-PEER-SITE-B-SW1
-   neighbor 10.0.0.21 send-community
+   ! Inter-Site: Site B SW1 is in sub-AS 64502 — confederation eBGP.
+   ! This session mirrors the physical VXLAN tunnel to Site B.
+   ! If this WAN path experiences jitter/flapping, increase to timers 30 90.
+   neighbor 198.51.100.21 remote-as 64502
+   neighbor 198.51.100.21 update-source Loopback0
+   neighbor 198.51.100.21 description CONFED-EBGP-SITE-B-SW1
+   neighbor 198.51.100.21 send-community extended
+   neighbor 198.51.100.21 timers 10 30
    !
-   ! EVPN Address Family
    address-family evpn
-      neighbor 10.0.0.12 activate
-      neighbor 10.0.0.21 activate
+      neighbor 198.51.100.12 activate
+      neighbor 198.51.100.21 activate
+      ! Critical: preserve the originating VTEP's Loopback IP as the
+      ! EVPN next-hop across the confederation eBGP boundary. Without
+      ! this, the remote VTEP IP is overwritten and VXLAN encapsulation
+      ! will target the wrong destination.
+      neighbor 198.51.100.21 next-hop-unchanged
    !
    ! VLAN-Aware Bundle
+   ! Route targets use the confederation identifier 64500 — consistent
+   ! across all sites regardless of sub-AS assignment.
    vlan 10
-      rd 10.0.0.11:10010
+      rd 198.51.100.11:10010
       route-target import 64500:10010
       route-target export 64500:10010
       redistribute learned
@@ -208,8 +231,8 @@ snmp-server community pacix-public ro
 ntp server 0.pool.ntp.org
 !
 ! SFlow (Traffic Analysis)
-sflow source 10.0.0.11
-sflow destination 192.168.100.50
+sflow source 198.51.100.11
+sflow destination 203.0.113.50
 sflow polling-interval 20
 sflow sample 1024
 sflow run

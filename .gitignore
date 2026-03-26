@@ -1,0 +1,32 @@
+# Claude Code
+.claude/
+
+# Environment files (may contain secrets)
+.env
+.env.*
+*.env
+
+# Secrets and credentials
+secrets.txt
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.csr
+id_rsa
+id_ed25519
+*.priv
+
+# Editor and OS noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Logs
+*.log
+logs/

@@ -70,10 +70,10 @@ flowchart TB
     B_RS2 --- B_SW2
     Member_B1 --- B_SW1
     Member_B2 --- B_SW2
-    A_SW1 -. VXLAN Tunnel .-> B_SW1
-    A_SW2 -. VXLAN Tunnel .-> B_SW2
-    A_SW1 -. IBGP EVPN .-> A_SW2
-    B_SW1 -. IBGP EVPN .-> B_SW2
+    A_SW1 -. "VXLAN + Conf-eBGP EVPN" .-> B_SW1
+    A_SW2 -. "VXLAN + Conf-eBGP EVPN" .-> B_SW2
+    A_SW1 -. "iBGP EVPN (Sub-AS 64501)" .-> A_SW2
+    B_SW1 -. "iBGP EVPN (Sub-AS 64502)" .-> B_SW2
 ```
 
 ---
@@ -93,7 +93,10 @@ The overlay simulates the "Big Layer 2 Switch" that members plug into.
 *   **Encapsulation:** VXLAN (RFC 7348).
 *   **Control Plane:** MP-BGP EVPN (RFC 7432).
 *   **VNI Mapping:** 1:1 mapping (VLAN 10 = VNI 10010).
-*   **Replication:** Ingress Replication (Head-end replication) is selected over Multicast to ensure compatibility with WAN providers who may drop Multicast traffic.
+*   **Replication:** Ingress Replication via EVPN Type 3 routes. VTEPs are discovered dynamically through the BGP EVPN control plane — no static flood lists are required. New sites are discovered automatically when they join the fabric.
+*   **BGP Topology:** A **BGP Confederation** (RFC 5065) is used for the EVPN control plane. Each physical site is assigned a private confederation sub-AS. Sessions between switches at the same site are iBGP (within the sub-AS). Sessions between sites are confederation eBGP.
+
+    > **Design Principle — Mirror the Physical Topology:** The BGP session topology is a 1:1 logical mirror of the physical topology. An intra-site ISL corresponds to an intra-site iBGP session. An inter-site VXLAN tunnel corresponds to an inter-site confederation eBGP session. The control plane and data plane topologies are identical, which simplifies troubleshooting and ensures the BGP graph scales at the same rate as the physical fabric.
 
 ### 3.3 Traffic Flow
 1.  **Local Traffic (Same Site):** Switched locally at line rate. Does not traverse the WAN.
@@ -106,24 +109,39 @@ The overlay simulates the "Big Layer 2 Switch" that members plug into.
 
 PacIXP will utilize APNIC-assigned resources. For this design, we use documentation prefixes.
 
+### 4.0 BGP Confederation Sub-AS Assignments
+
+The confederation identifier is `64500`. Each site is assigned a private sub-AS from the 64501–64511 range.
+
+| Sub-AS | Site | Location |
+| :--- | :--- | :--- |
+| `64501` | Site A | Samoa |
+| `64502` | Site B | Fiji |
+| `64503` | Site C | Tonga *(future)* |
+| `64504` | Site D | Vanuatu *(future)* |
+
+> **Note:** Route Targets and Route Distinguishers continue to reference the confederation identifier `64500`, not the sub-AS. All switches share the same import/export RT (`64500:10010`), regardless of which site they are at.
+
+All addresses below use IANA documentation ranges per DP-12 of the design principles. **These ranges are unroutable and cannot be used on a live IXP.** Before connecting any member, obtain formal allocations from APNIC (or your local NIR) and replace every address. See DP-12 for the full replacement map and what requires RIR allocation versus what may use RFC1918/ULA.
+
 ### 4.1 Infrastructure (Underlay)
-| Segment | IPv4 Range | IPv6 Range | Description |
+
+| Segment | IPv4 (RFC5737) | IPv6 (RFC9637) | Description |
 | :--- | :--- | :--- | :--- |
-| **Loopbacks (VTEP)** | `10.0.0.x/32` | `fd00::x/128` | Unique ID for every switch. |
-| **Point-to-Point** | `172.16.x.x/31` | `fd00:1::x/127` | Inter-switch links. |
-| **Management** | `192.168.100.0/24` | - | OOB Management Network. |
+| **Loopbacks (VTEP)** | `198.51.100.x/32` | `3fff:0:2::x/128` | Unique per switch. Site A: `.11`/`.12`; Site B: `.21`/`.22` |
+| **Point-to-Point** | `198.51.100.64/26` as `/31` pairs | `3fff:0:3::/64` as `/127` pairs | Uplinks and ISLs |
+| **Management (OOB)** | `203.0.113.0/24` | — | Physically separate from peering plane |
 
 ### 4.2 Peering LAN (Overlay)
-This is the public space where members exchange traffic.
 
-| Segment | IPv4 Range | IPv6 Range | VLAN ID | VNI |
+| Segment | IPv4 (RFC5737) | IPv6 (RFC9637) | VLAN ID | VNI |
 | :--- | :--- | :--- | :--- | :--- |
-| **Peering LAN** | `192.0.2.0/24` | `2001:db8:1::/64` | 10 | 10010 |
+| **Peering LAN** | `192.0.2.0/24` | `3fff:0:1::/64` | 10 | 10010 |
 
 *   **Gateway:** No default gateway exists on the Peering LAN. It is a strictly Layer 2 domain.
 *   **Route Servers:**
-    *   RS1: `192.0.2.254` / `2001:db8:1::254`
-    *   RS2: `192.0.2.253` / `2001:db8:1::253`
+    *   RS1: `192.0.2.254` / `3fff:0:1::fe`
+    *   RS2: `192.0.2.253` / `3fff:0:1::fd`
 
 ---
 
@@ -198,11 +216,14 @@ The design is built for growth.
 
 *   **Current Capacity:** Supports ~48x 10G/25G ports per site.
 *   **Scaling Up (Bandwidth):** Upgrade ISL to 400G; Member ports to 100G.
-*   **Scaling Out (Sites):** To add Tonga (Site C):
+*   **Scaling Out (Sites):** To add Tonga (Site C), using confederation sub-AS `64503`:
     1.  Deploy SW/RS hardware in Tonga.
-    2.  Establish IP connectivity (Underlay).
-    3.  Configure BGP EVPN peering to Site A & B.
-    4.  Tonga is now part of the fabric.
+    2.  Establish IP connectivity (Underlay — OSPF or static routes to Loopback IPs).
+    3.  Assign sub-AS `64503`. Configure confederation eBGP sessions from Tonga switches to their mirror peers at existing sites (e.g., Tonga-SW1 peers with Samoa-SW1 and Fiji-SW1).
+    4.  Add `64503` to the `bgp confederation peers` list on existing switches. **This is the only change required on existing devices.**
+    5.  Tonga is now part of the fabric. EVPN Type 3 routes automatically distribute Tonga's VTEP address to all other sites — no static flood lists to update.
+
+    > **Confederation session count scales as O(S)** per switch, where S = number of sites. Each switch maintains one iBGP session (to its intra-site partner) plus one confederation eBGP session per remote site. Compare to a flat iBGP full-mesh where each switch would require O(N) sessions to every other switch.
 
 ---
 

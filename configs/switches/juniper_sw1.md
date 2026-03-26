@@ -130,18 +130,24 @@ interfaces {
         mtu 9216; /* Critical for VXLAN overhead */
         unit 0 {
             family inet {
-                address 172.16.0.1/31;
+                address 198.51.100.64/31;
+            }
+            family inet6 {
+                address 3fff:0:3::/127;
             }
         }
     }
-    
+
     /* Inter-Switch Link (ISL) */
     et-0/0/49 {
         description "INFRA: ISL-TO-SW2";
         mtu 9216;
         unit 0 {
             family inet {
-                address 172.16.0.3/31;
+                address 198.51.100.66/31;
+            }
+            family inet6 {
+                address 3fff:0:3::2/127;
             }
         }
     }
@@ -150,16 +156,19 @@ interfaces {
     lo0 {
         unit 0 {
             family inet {
-                address 10.0.0.11/32;
+                address 198.51.100.11/32;
+            }
+            family inet6 {
+                address 3fff:0:2::11/128;
             }
         }
     }
-    
+
     /* Management */
     me0 {
         unit 0 {
             family inet {
-                address 192.168.100.11/24;
+                address 203.0.113.11/24;
             }
         }
     }
@@ -221,6 +230,25 @@ vlans {
 }
 
 /* ------------------------------------------------------------------
+ * ROUTING OPTIONS (BGP Confederation Identity)
+ * ------------------------------------------------------------------ */
+/* This switch is in sub-AS 64501 (Site A: Samoa).
+ * The confederation identifier 64500 is the externally-visible AS.
+ * Route Targets reference the confederation ID, not the sub-AS.
+ *
+ * BGP topology mirrors the physical topology:
+ *   Intra-site ISL   <--> iBGP session (type internal, same sub-AS)
+ *   Inter-site VXLAN <--> confederation eBGP (type external, peer sub-AS)
+ */
+routing-options {
+    autonomous-system 64501;
+    confederation 64500 {
+        members [ 64501 64502 64503 ];
+    }
+    router-id 198.51.100.11;
+}
+
+/* ------------------------------------------------------------------
  * PROTOCOLS - UNDERLAY (OSPF)
  * ------------------------------------------------------------------ */
 protocols {
@@ -233,28 +261,58 @@ protocols {
             interface et-0/0/49.0;
         }
     }
+    ospf3 {
+        area 0.0.0.0 {
+            interface lo0.0 {
+                passive;
+            }
+            interface et-0/0/48.0;
+            interface et-0/0/49.0;
+        }
+    }
 
 /* ------------------------------------------------------------------
- * PROTOCOLS - OVERLAY (BGP EVPN)
+ * PROTOCOLS - OVERLAY (BGP EVPN CONFEDERATION)
  * ------------------------------------------------------------------ */
     bgp {
-        group OVERLAY-EVPN {
+        /* Intra-Site: SW2 shares sub-AS 64501 — standard iBGP behavior.
+         * This session mirrors the physical ISL between SW1 and SW2.
+         * Junos type internal = same autonomous-system (sub-AS 64501). */
+        group EVPN-INTRASITE {
             type internal;
-            local-address 10.0.0.11;
+            local-address 198.51.100.11;
+            /* Explicit timers — do not rely on Junos defaults (30/90).
+             * If this WAN path experiences jitter/flapping, increase to
+             * hold-time 90 (keepalive defaults to hold-time/3 = 30). */
+            hold-time 30;
             family evpn {
                 signaling;
             }
-            /* Peer with Local SW2 */
-            neighbor 10.0.0.12 {
-                description "iBGP-PEER-SW2";
+            neighbor 198.51.100.12 {
+                description "iBGP-INTRASITE-SW2";
             }
-            /* Peer with Remote Site B SW1 */
-            neighbor 10.0.0.21 {
-                description "iBGP-PEER-SITE-B-SW1";
+        }
+        /* Inter-Site: Site B switches are in sub-AS 64502 — confederation eBGP.
+         * These sessions mirror the physical VXLAN tunnels between sites.
+         * Junos type external = different sub-AS (peer-as set per neighbor).
+         *
+         * no-nexthop-change: Critical — preserves the originating VTEP's
+         * Loopback IP as the EVPN next-hop across the confederation boundary.
+         * Without this, the VTEP IP is overwritten and VXLAN breaks. */
+        group EVPN-INTERSITE {
+            type external;
+            local-address 198.51.100.11;
+            /* Explicit timers — do not rely on Junos defaults (30/90).
+             * If this WAN path experiences jitter/flapping, increase to
+             * hold-time 90 (keepalive defaults to hold-time/3 = 30). */
+            hold-time 30;
+            no-nexthop-change;
+            family evpn {
+                signaling;
             }
-            /* Peer with Remote Site B SW2 */
-            neighbor 10.0.0.22 {
-                description "iBGP-PEER-SITE-B-SW2";
+            neighbor 198.51.100.21 {
+                description "CONFED-EBGP-SITE-B-SW1";
+                peer-as 64502;
             }
         }
     }

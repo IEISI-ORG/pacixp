@@ -62,6 +62,7 @@ pacix-reference-design/
 │   ├── switches/              # Arista, Juniper, & EdgeCore templates
 │   └── routeservers/          # BIRD 2.x and GoBGP configurations
 ├── docs/                      # Technical Documentation
+│   ├── 00-design-principles.md  # Governing principles — read before making changes
 │   ├── 01-high-level-design.md
 │   ├── 02-addressing-plan.md
 │   └── 03-security-hardening.md
@@ -79,7 +80,8 @@ pacix-reference-design/
 ## 🚀 Getting Started
 
 ### Phase 1: Planning & Procurement
-1.  Review the **[High Level Design](docs/01-high-level-design.md)** to understand the topology.
+1.  Read the **[Design Principles](docs/00-design-principles.md)** — these govern every architectural decision in this repo.
+2.  Review the **[High Level Design](docs/01-high-level-design.md)** to understand the topology.
 2.  Select your hardware vendor using the **[Bill of Materials](BOM.csv)**.
 3.  Request IP resources using the **[APNIC Request Template](templates/apnic-resource-request.md)**.
 
