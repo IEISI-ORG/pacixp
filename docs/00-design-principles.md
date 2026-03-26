@@ -60,15 +60,27 @@ This document is the authoritative statement of *why* PacIXP is built the way it
 
 ---
 
-### DP-5 — Fail Closed
+### DP-5 — Fail Closed, with IRR as the Inner Defence Layer
 
-> **When validation state is unknown, the safe default is to reject, not to accept.**
+> **When validation state is unknown, the safe default is to reject, not to accept. Route filtering uses two independent layers — IRR and RPKI — and both must be active. The IRR layer operates regardless of RPKI state and provides meaningful protection during RPKI cache outages.**
 
-- RPKI validation: routes with `RPKI_INVALID` origin are dropped. Routes with `RPKI_UNKNOWN` are accepted only during the initial deployment phase; the goal is full ROV enforcement.
-- RPKI cache expiry: if the local RPKI validator (Routinator) becomes unreachable, route servers must reject or hold routes rather than accepting them as valid.
+**The two filter layers and what each catches:**
+
+| Layer | Mechanism | What it rejects | Operates when RPKI is down? |
+| :--- | :--- | :--- | :--- |
+| **IRR prefix filter** | `bgpq4` expands member AS-SET → prefix-list applied as inbound filter on RS | Any prefix outside the member's declared routing policy | **Yes — always active** |
+| **RPKI ROV** | BIRD queries local Routinator; drops `RPKI_INVALID` routes | Routes where the announcing AS has no valid ROA for the prefix | No — depends on validator reachability |
+
+**Rules:**
+- RPKI validation: routes with `RPKI_INVALID` origin are dropped unconditionally. Routes with `RPKI_UNKNOWN` are accepted only during the initial deployment phase; the goal is full ROV enforcement.
+- RPKI cache expiry: route servers must reject or hold routes rather than accepting them as valid. IRR filters remain active throughout and limit the blast radius to prefixes within the member's own AS-SET.
+- IRR filter hygiene: members must register an accurate AS-SET in a public IRR (RADB, RIPE, or APNIC) as a condition of membership. Stale or overly broad AS-SETs directly reduce the protection this layer provides.
+- IRR filters are refreshed every 15 minutes via IXP Manager. A member who adds a new prefix to their AS-SET will have it accepted within one refresh cycle — no manual RS intervention required.
 - BGP session limits: if a member exceeds their configured max-prefix limit, the session is torn down immediately.
 
-*Why:* An IXP that passes invalid routes, even briefly, actively harms the global routing table. The IXP's value is in improving routing — not in providing an unfiltered path that bypasses the safeguards members apply at their own borders.
+**Residual risk during RPKI cache expiry:** IRR filters do not catch a route where the prefix *is* within the member's AS-SET but the origin AS has an `RPKI_INVALID` ROA (e.g., a hijack by a member of their own prefix from a different AS). This is the attack surface that remains when RPKI is unavailable. Tight AS-SETs minimise this window; RPKI fail-closed eliminates it.
+
+*Why:* An IXP that passes invalid routes, even briefly, actively harms the global routing table. The layered approach ensures that a temporary RPKI validator outage degrades security incrementally rather than catastrophically — the IRR layer continues to reject out-of-policy routes while RPKI is restored.
 
 ---
 

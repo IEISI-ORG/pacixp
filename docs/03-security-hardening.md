@@ -58,11 +58,27 @@ The Route Servers (RS) act as the trust brokers. We use **BIRD 2.x** to enforce 
 ### 3.1 MANRS Compliance Actions
 PacIXP adheres to the [MANRS IXP Programme](https://www.manrs.org/).
 
-*   **Action 1 (Prevent Incorrect Routing):**
-    *   **RPKI (Route Origin Validation):** Connect BIRD to a local validator (e.g., Routinator). **Reject** all `RPKI_INVALID` routes.
-    *   **IRR Filtering:** Use `bgpq4` to generate prefix lists from the member's `AS-SET` in PeeringDB/RADB. Reject prefixes not in the IRR.
-    *   **Bogon Filtering:** Reject all RFC1918 (Private), RFC5735 (Special Use), and Multicast ranges.
-    *   **Max-Prefix Limits:** Set a hard limit (e.g., 120% of current table size). If exceeded, tear down the BGP session to protect RS RAM/CPU.
+*   **Action 1 (Prevent Incorrect Routing) — Two-Layer Filtering Model:**
+
+    Route filtering uses two independent layers applied in sequence on every inbound route. Both must pass for a route to be accepted.
+
+    **Layer 1 — IRR Prefix Filter (always active, inner gate)**
+    *   Each member must register an AS-SET in a public IRR (RADB, RIPE, or APNIC) as a condition of membership.
+    *   `bgpq4` recursively expands the AS-SET to produce a prefix-list for that member.
+    *   IXP Manager refreshes these prefix-lists every 15 minutes via cron.
+    *   Any prefix not in the member's AS-SET is rejected unconditionally, regardless of RPKI state.
+    *   This layer operates even when the RPKI validator is unreachable. It limits the blast radius of a RPKI cache outage to routes that are within the member's own declared policy.
+    *   **Membership requirement:** overly broad AS-SETs (e.g., `AS-ANY`) are not acceptable. The IXP operator must verify AS-SET scope at onboarding and periodically audit for inflation.
+
+    **Layer 2 — RPKI Route Origin Validation (outer gate)**
+    *   BIRD connects to a local Routinator instance via RTR protocol.
+    *   Routes with `RPKI_INVALID` origin are **rejected unconditionally**.
+    *   Routes with `RPKI_UNKNOWN` are accepted during initial rollout but the target is full ROV enforcement once members have established ROAs.
+    *   If the RPKI cache becomes unreachable, route servers must **fail closed** (reject or hold) rather than accepting all routes as valid. Layer 1 (IRR) continues to provide filtering during any RPKI outage.
+
+    **Additional filters applied to all sessions:**
+    *   **Bogon Filtering:** Reject RFC1918, RFC5735 (Special Use), and Multicast ranges.
+    *   **Max-Prefix Limits:** Tear down the BGP session if a member announces more than 120% of their expected prefix count. Protects RS RAM/CPU from route table injection attacks.
 
 *   **Action 2 (Prevent Spoofing):**
     *   **uRPF (Unicast Reverse Path Forwarding):** Enabled on switch ports where hardware supports it (loose mode).

@@ -1,7 +1,7 @@
 # Pacific Islands Internet Exchange (PacIXP) Reference Design
 
 ![Status](https://img.shields.io/badge/Status-Production%20Ready-green)
-![License](https://img.shields.io/badge/License-MIT-blue)
+![License](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-blue)
 ![Standards](https://img.shields.io/badge/Compliance-MANRS-orange)
 
 ## 🌴 Project Overview
@@ -22,7 +22,7 @@ Designed for resource-constrained environments with high latency and limited loc
 This design utilizes a **Collapsed Core** topology with an **EVPN/VXLAN** control plane. This allows the exchange fabric to stretch across multiple physical sites (data centers or islands) without the risks associated with Spanning Tree Protocol (STP).
 
 ### Key Features
-*   **Hardware Agnostic:** Complete configurations provided for **Arista EOS**, **Juniper QFX**, and **EdgeCore (OcNOS)**.
+*   **Hardware Agnostic:** Reference configurations provided for **Arista EOS** and **Juniper QFX**, with the architecture designed to be vendor-neutral.
 *   **Dual-Stack:** Native IPv4 and IPv6 peering support from day one.
 *   **MANRS Compliant:** Built-in security (RPKI, IRR filtering, Anti-spoofing).
 *   **Automated:** Integrated with **IXP Manager** for provisioning and member portals.
@@ -56,23 +56,29 @@ graph TD
 The repository is organized to guide you from planning to operations.
 
 ```text
-pacix-reference-design/
-├── BOM.csv                    # Hardware Bill of Materials & Cost Estimates
-├── configs/                   # Production-ready Device Configurations
-│   ├── switches/              # Arista, Juniper, & EdgeCore templates
-│   └── routeservers/          # BIRD 2.x and GoBGP configurations
-├── docs/                      # Technical Documentation
-│   ├── 00-design-principles.md  # Governing principles — read before making changes
-│   ├── 01-high-level-design.md
-│   ├── 02-addressing-plan.md
-│   └── 03-security-hardening.md
-├── runbooks/                  # Operational SOPs
-│   ├── member-onboarding.md   # How to connect a new ISP
-│   ├── incident-response.md   # What to do when things break
-│   └── maintenance.md         # Upgrades and backup procedures
-└── templates/                 # Administrative Templates
-    ├── apnic-resource-request.md
-    └── ixp-manager-docker-compose.yml
+pacixp/
+├── TODO.md                              # Open work items
+├── configs/
+│   └── switches/
+│       ├── arista_sw1.md               # Arista EOS reference configuration
+│       └── juniper_sw1.md              # Juniper QFX reference configuration
+├── docs/
+│   ├── 00-design-principles.md         # Governing principles — read before making changes
+│   ├── 01-high-level-design.md         # Architecture, topology, and addressing plan
+│   ├── 03-security-hardening.md        # MANRS compliance and hardening checklist
+│   └── 05-ixp-manager.md               # IXP Manager Docker deployment guide
+├── labs/
+│   ├── README.md                        # Lab setup instructions
+│   ├── pacixp.clabs.yml                 # Containerlab topology definition
+│   └── configs/                         # Lab switch, route server, and member configs
+├── runbooks/
+│   └── ixp-manager-arista-switch.md    # Integrating an Arista switch with IXP Manager
+├── strategy/
+│   ├── automation.md                    # Automation philosophy and scope
+│   ├── onboarding.md                    # Member onboarding workflow and training
+│   └── virtualization.md               # VM/container infrastructure strategy
+└── templates/
+    └── ixp-manager-docker-compose.yml  # Docker Compose for IXP Manager
 ```
 
 ---
@@ -81,19 +87,18 @@ pacix-reference-design/
 
 ### Phase 1: Planning & Procurement
 1.  Read the **[Design Principles](docs/00-design-principles.md)** — these govern every architectural decision in this repo.
-2.  Review the **[High Level Design](docs/01-high-level-design.md)** to understand the topology.
-2.  Select your hardware vendor using the **[Bill of Materials](BOM.csv)**.
-3.  Request IP resources using the **[APNIC Request Template](templates/apnic-resource-request.md)**.
+2.  Review the **[High Level Design](docs/01-high-level-design.md)** to understand the topology and addressing plan.
+3.  Contact **APNIC** (or your local NIR) to obtain a public ASN, IPv4 /24, and IPv6 /48 before any hardware is ordered. See DP-12 in the design principles for the full list of required allocations.
 
 ### Phase 2: Implementation
 1.  **Rack & Power:** Install switches and servers according to the site plan.
 2.  **Switch Config:** Navigate to `configs/switches/`, select your vendor, and apply the `base-config`.
     *   *Note:* Update the `VTEP IPs` and `Router IDs` per the addressing plan.
-3.  **IXP Manager:** Deploy the management platform using the **[Docker Guide](templates/ixp-manager-setup.md)**.
-4.  **Route Servers:** Install BIRD 2.x and apply the configs from `configs/routeservers/bird/`.
+3.  **IXP Manager:** Deploy the management platform using the **[Docker Guide](docs/05-ixp-manager.md)**.
+4.  **Route Servers:** Install BIRD 2.x. Use `labs/configs/rs1.cfg` as the starting-point template and adapt filters per the **[Security Hardening Guide](docs/03-security-hardening.md)**.
 
 ### Phase 3: Operations
-1.  Follow the **[Member Onboarding Runbook](runbooks/member-onboarding.md)** to connect your first peer.
+1.  Follow the **[Member Onboarding Guide](strategy/onboarding.md)** to connect your first peer.
 2.  Verify security using the **[Hardening Checklist](docs/03-security-hardening.md)**.
 
 ---
@@ -129,6 +134,11 @@ This project is licensed under the **CC BY-NC-SA 4.0** (Creative Commons Attribu
 
 ### 🤝 For Community IXPs
 **We believe in the open Internet.** If you are a non-profit, cooperative, or community-governed IXP (even if you charge standard port fees to cover costs), you are **free to use, modify, and deploy** this architecture without restriction. We only ask that you credit the PacIXP project.
+
+### 💼 For Commercial Users
+**Commercial use requires a separate paid license.** Any use by commercial entities — including for-profit data centers, commercial carriers, or paid consultants using this design to deliver client projects — is **not permitted under the CC BY-NC-SA license** and requires a commercial license from **IEISI**, for which a substantial fee applies.
+
+Contact **tcs@ieisi.org** for commercial licensing terms and paid support options.
 
 **Acknowledgments:**
 *   Based on best practices from **Euro-IX** and **APNIC**.

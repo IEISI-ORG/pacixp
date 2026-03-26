@@ -14,8 +14,9 @@ Work identified during code review. Grouped by priority.
 
 ### RPKI Cache Expiry Policy is "Fail Open"
 - `strategy/virtualization.md` line 71 documents RPKI cache expiry behavior as "Fail Open (Warn)"
-- This means routes of unknown validity are accepted — an RPKI-INVALID route could slip through if Routinator is stale
-- Change to "Fail Closed" or document the explicit risk acceptance decision
+- During a cache outage, IRR prefix filters (from member AS-SETs) remain active and reject anything outside the member's declared policy — this limits the blast radius to routes within a member's own AS-SET that lack valid ROAs
+- Residual risk: a hijack of a prefix that IS in the member's AS-SET but from a different origin AS would pass IRR and slip through RPKI during the outage window
+- Change to "Fail Closed" in `strategy/virtualization.md`, or document explicit risk acceptance with reference to IRR mitigation
 
 ---
 
@@ -44,17 +45,9 @@ Work identified during code review. Grouped by priority.
 
 ## Medium Priority (Completeness & Accuracy)
 
-### Broken README Links
-- `README.md` references `BOM.csv` (Bill of Materials) and `docs/02-addressing-plan.md` — neither file exists
-- `README.md` references `runbooks/member-onboarding.md` — does not exist (only `strategy/onboarding.md` does)
-- Either create these files or remove the references
-
 ### Missing Files Referenced in Docs
 | File | Referenced In | Status |
 |------|--------------|--------|
-| `BOM.csv` | `README.md` | Missing |
-| `docs/02-addressing-plan.md` | `README.md` | Missing |
-| `runbooks/member-onboarding.md` | `README.md` | Missing |
 | `ixp-manager-bird-api` script | `strategy/automation.md` | Missing — not in repo |
 | Member config snippets (Cisco, MikroTik) | `strategy/onboarding.md` | Missing |
 
@@ -92,7 +85,7 @@ Work identified during code review. Grouped by priority.
 - Provide an IP address allocation worksheet covering: loopback ranges, P-P link ranges, peering LAN (IPv4 + IPv6), management VLAN, and ASN allocation guidance for member registration
 
 ### Create `BOM.csv` (Bill of Materials)
-- Hardware recommendations (Arista, Juniper, EdgeCore options), rough costs, power/rack requirements
+- Hardware recommendations (Arista, Juniper options), rough costs, power/rack requirements
 - Useful for grant applications and procurement planning
 
 ### Add EdgeCore / Cisco / MikroTik Configuration Examples
