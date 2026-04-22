@@ -1,4 +1,4 @@
-# PacIXP Training & Onboarding Strategy
+# PACIXP Training & Onboarding Strategy
 
 | Strategy Details | |
 | :--- | :--- |
@@ -25,8 +25,8 @@ Before touching the live equipment, operators must complete these prerequisites.
     *   Resource: **Ubuntu Server Guide**.
     *   Key Skill: SSH key management, Systemd services, Cron jobs, Docker basics.
 
-### Phase 2: The PacIXP Tech Stack (Hands-On)
-Training on the specific tools deployed at PacIXP.
+### Phase 2: The PACIXP Tech Stack (Hands-On)
+Training on the specific tools deployed at PACIXP.
 
 *   **IXP Manager Admin:**
     *   **Activity:** Create a dummy member, assign ports, generate a Route Server config.
@@ -64,18 +64,81 @@ Every new member receives a PDF/Wiki link containing:
     *   Allowed Ethertypes (0x0800, 0x86dd, 0x0806).
     *   MTU Settings (1500 or 9000).
     *   Security requirements (No Proxy ARP, No CDP/LLDP).
-3.  **Config Snippets:** Copy-paste examples for Cisco IOS, Juniper, and MikroTik (very common in the Pacific).
+3.  **Config Snippets:**
+
+#### Cisco IOS / IOS-XE
+```ios
+! Replace 1.1.1.1 with your Peering IP
+! Replace 2001:db8::1 with your Peering IPv6
+! Replace 65000 with your ASN
+!
+router bgp 65000
+ neighbor 192.0.2.254 remote-as 64500
+ neighbor 192.0.2.254 description PACIXP-RS1
+ neighbor 3fff:0:1::fe remote-as 64500
+ neighbor 3fff:0:1::fe description PACIXP-RS1-v6
+ !
+ address-family ipv4
+  neighbor 192.0.2.254 activate
+  neighbor 192.0.2.254 send-community
+  neighbor 192.0.2.254 next-hop-self
+ exit-address-family
+ !
+ address-family ipv6
+  neighbor 3fff:0:1::fe activate
+  neighbor 3fff:0:1::fe send-community
+  neighbor 3fff:0:1::fe next-hop-self
+ exit-address-family
+```
+
+#### MikroTik (RouterOS v7)
+```routeros
+# Replace 192.0.2.x with your Peering IP
+# Replace 3fff:0:1::x with your Peering IPv6
+# Replace 65000 with your ASN
+
+/routing bgp template
+add name=PACIXP-RS as=65000 address-families=ip,ipv6
+
+/routing bgp connection
+add name=RS1-v4 remote.address=192.0.2.254 .as=64500 \
+    templates=PACIXP-RS connect=yes listen=yes
+add name=RS1-v6 remote.address=3fff:0:1::fe .as=64500 \
+    templates=PACIXP-RS connect=yes listen=yes
+```
+
+#### Juniper Junos
+```junos
+# Replace 65000 with your ASN
+# Replace 192.0.2.x with your Peering IP
+# Replace 3fff:0:1::x with your Peering IPv6
+
+protocols {
+    bgp {
+        group PACIXP-RS {
+            type external;
+            peer-as 64500;
+            neighbor 192.0.2.254 {
+                description "RS1-v4";
+            }
+            neighbor 3fff:0:1::fe {
+                description "RS1-v6";
+            }
+        }
+    }
+}
+```
 
 ### The Onboarding Workflow
 
 #### Step 1: Administrative (Day 0-2)
 *   Member signs **MOU (Memorandum of Understanding)**.
 *   Member requests port size (1G/10G) via IXP Manager Portal.
-*   **PacIXP Team:** Assigns VLAN ID and IP Addresses in IPAM.
+*   **PACIXP Team:** Assigns VLAN ID and IP Addresses in IPAM.
 
 #### Step 2: Physical Connection (Day 3)
-*   Member runs cross-connect (fiber) to the PacIXP ODF.
-*   **PacIXP Team:** Patches to the switch.
+*   Member runs cross-connect (fiber) to the PACIXP ODF.
+*   **PACIXP Team:** Patches to the switch.
 *   **Verification:** Check Light Levels (`show interfaces transceiver`).
 
 #### Step 3: Quarantine & Hygiene Check (Day 4)
@@ -89,13 +152,13 @@ Every new member receives a PDF/Wiki link containing:
 
 #### Step 4: BGP Session Establishment (Day 5)
 *   Member configures BGP to peer with RS1 and RS2.
-*   **PacIXP Team:** Verifies session state in IXP Manager.
-*   **PacIXP Team:** Checks "Hidden Routes" in BIRD to ensure the member isn't sending Bogons or RPKI Invalids.
+*   **PACIXP Team:** Verifies session state in IXP Manager.
+*   **PACIXP Team:** Checks "Hidden Routes" in BIRD to ensure the member isn't sending Bogons or RPKI Invalids.
 
 #### Step 5: Go Live (Day 5)
 *   Routes are accepted.
 *   Traffic begins flowing.
-*   Member is announced on the PacIXP mailing list.
+*   Member is announced on the PACIXP mailing list.
 
 ---
 

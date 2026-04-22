@@ -1,7 +1,7 @@
-# PacIXP Automation Strategy
+# PACIXP Automation Strategy
 
 ## 1. Core Philosophy: The "Source of Truth"
-The fundamental rule of PacIXP automation is:
+The fundamental rule of PACIXP automation is:
 > **"If it isn't in IXP Manager, it doesn't exist."**
 
 *   **No Manual Spreadsheets:** IPAM (IP Address Management) is handled strictly by IXP Manager.
@@ -66,7 +66,7 @@ The configuration for BIRD (Route Servers) is too complex to manage manually (th
 ### B. Member Onboarding (Assisted Automation)
 *Status: Templated / Workflow Enforced*
 
-When a new ISP joins PacIXP:
+When a new ISP joins PACIXP:
 1.  **Sales/Admin:** Enters member details in IXP Manager.
 2.  **System:** Auto-assigns next available IPv4/IPv6 from the pool.
 3.  **System:** Generates a "Welcome Email" PDF with connection details (LOA, IPs, VLANs).
@@ -101,20 +101,76 @@ Automation isn't just about *configuring*; it's about *watching*.
 
 ---
 
-## 5. Disaster Recovery Strategy
+### 5. Disaster Recovery Strategy
 
 If the automation server (IXP Manager) dies, the network **must stay up**.
 
 1.  **Decoupled Control Plane:** The Route Servers and Switches run independently of IXP Manager. If the Manager goes offline, BGP sessions stay up. No new filters will be generated, but existing traffic flows.
-2.  **Config Backups:**
-    *   **Daily:** `Oxidized` or `RANCID` pulls configs from switches and stores them in a Git repository.
+2.  **Config Backups (Oxidized):**
+    We use **Oxidized** to automatically poll switches and commit changes to a Git repository.
+
+    #### Oxidized Setup Instructions
+    1.  **Directory Structure:**
+        Create the configuration directory: `mkdir -p /opt/ixp-manager/oxidized`.
+    2.  **Configuration (`oxidized/config`):**
+        We use the **LibreNMS API** as the source of truth for Oxidized. This ensures any device added to monitoring is automatically backed up.
+        ```yaml
+        ---
+        interval: 3600
+        use_syslog: false
+        debug: false
+        threads: 30
+        timeout: 20
+        retries: 3
+        prompt: !ruby/regexp /^([\w.@()-]+[#>]\s?)$/
+        rest: 0.0.0.0:8888
+        next_adds_job: false
+        vars:
+          enable: "your_enable_password"
+        groups:
+          arista:
+            username: admin
+            password: your_ssh_password
+          juniper:
+            username: admin
+            password: your_ssh_password
+        model_map:
+          arista: eos
+          juniper: junos
+        source:
+          default: http
+          http:
+            url: http://librenms:8000/api/v0/oxidized
+            map:
+              name: hostname
+              model: os
+              group: group
+            headers:
+              X-Auth-Token: "YOUR_LIBRENMS_API_TOKEN"
+        output:
+          default: git
+          git:
+            single_repo: true
+            local: /root/.config/oxidized/configs.git
+        ```
+
+    #### LibreNMS + Oxidized Integration
+    To enable the "Config" tab in LibreNMS:
+    1.  **LibreNMS Side:** Go to `Global Settings -> External Settings -> Oxidized`.
+    2.  **Enable:** Set `Enable Oxidized` to `ON`.
+    3.  **URL:** Set `Oxidized URL` to `http://oxidized:8888`.
+    4.  **Source:** This configuration allows LibreNMS to feed the device list *to* Oxidized and display the retrieved configs back in the UI.
+
+3.  **Database Backups:**
     *   **Hourly:** Database dump of IXP Manager to off-site storage.
+    *   Example Cron: `0 * * * * docker exec ixp-manager-db-1 mysqldump -u ixp -pPASSWORD ixp > /backups/ixp_$(date +\%H).sql`
+
 
 ---
 
 ## 6. Future Phase: "Run" (Full Automation)
 
-Once the PacIXP team is comfortable with the "Walk" phase (Assisted Automation), we can move to the "Run" phase (Year 2-3).
+Once the PACIXP team is comfortable with the "Walk" phase (Assisted Automation), we can move to the "Run" phase (Year 2-3).
 
 *   **Ansible Integration:** Replace the "Copy/Paste" switch config with Ansible playbooks that pull data from the IXP Manager API and push to switches.
 *   **Self-Service Portal:** Allow members to update their own MAC addresses or change port speeds via the portal, triggering automated provisioning.

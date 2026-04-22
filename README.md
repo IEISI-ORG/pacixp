@@ -1,4 +1,4 @@
-# Pacific Islands Internet Exchange (PacIXP) Reference Design
+# Pacific Islands Internet Exchange (PACIXP) Reference Design
 
 ![Status](https://img.shields.io/badge/Status-Production%20Ready-green)
 ![License](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-blue)
@@ -133,7 +133,7 @@ Please ensure all network configurations are validated against a virtual lab (e.
 This project is licensed under the **CC BY-NC-SA 4.0** (Creative Commons Attribution-NonCommercial-ShareAlike) license.
 
 ### 🤝 For Community IXPs
-**We believe in the open Internet.** If you are a non-profit, cooperative, or community-governed IXP (even if you charge standard port fees to cover costs), you are **free to use, modify, and deploy** this architecture without restriction. We only ask that you credit the PacIXP project.
+**We believe in the open Internet.** If you are a non-profit, cooperative, or community-governed IXP (even if you charge standard port fees to cover costs), you are **free to use, modify, and deploy** this architecture without restriction. We only ask that you credit the PACIXP project.
 
 ### 💼 For Commercial Users
 **Commercial use requires a separate paid license.** Any use by commercial entities — including for-profit data centers, commercial carriers, or paid consultants using this design to deliver client projects — is **not permitted under the CC BY-NC-SA license** and requires a commercial license from **IEISI**, for which a substantial fee applies.

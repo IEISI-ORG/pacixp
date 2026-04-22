@@ -1,4 +1,4 @@
-# PacIXP Virtualization & Container Strategy
+# PACIXP Virtualization & Container Strategy
 
 ## 1. Architectural Philosophy
 
@@ -26,8 +26,8 @@ These machines handle the actual routing logic. If they fail, traffic exchange s
 
 | VM Name | Tech Stack | Hosted On | Functions | Critical Interactions | Impact of Outage |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **PacIXP-RS1** | **VM** (Ubuntu 22.04 + BIRD) | `SRV-01` | • BGP Route Reflection<br>• RPKI Enforcement<br>• Bogon Filtering | • Peers with all Members<br>• Pulls RPKI data from Validator<br>• Push stats to IXP Mgr | **SEVERITY: HIGH**<br>Redundancy is lost. If RS2 also fails, the IXP halts. |
-| **PacIXP-RS2** | **VM** (Ubuntu 22.04 + BIRD) | `SRV-02` | • *Identical to RS1*<br>(Redundant Pair) | • Peers with all Members<br>• Pulls RPKI data from Validator | **SEVERITY: HIGH**<br>Redundancy is lost. |
+| **PACIXP-RS1** | **VM** (Ubuntu 22.04 + BIRD) | `SRV-01` | • BGP Route Reflection<br>• RPKI Enforcement<br>• Bogon Filtering | • Peers with all Members<br>• Pulls RPKI data from Validator<br>• Push stats to IXP Mgr | **SEVERITY: HIGH**<br>Redundancy is lost. If RS2 also fails, the IXP halts. |
+| **PACIXP-RS2** | **VM** (Ubuntu 22.04 + BIRD) | `SRV-02` | • *Identical to RS1*<br>(Redundant Pair) | • Peers with all Members<br>• Pulls RPKI data from Validator | **SEVERITY: HIGH**<br>Redundancy is lost. |
 
 ### B. The Management Plane (Operational Support)
 
@@ -35,14 +35,14 @@ These machines handle configuration and monitoring. If they fail, traffic contin
 
 | VM Name | Tech Stack | Hosted On | Functions | Critical Interactions | Impact of Outage |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **PacIXP-MGMT** | **VM** (Docker Host) | `SRV-01` | • **IXP Manager** (Web/DB)<br>• **Routinator** (RPKI)<br>• **Oxidized** (Backups) | • Pushes configs to RS1/RS2<br>• Polls Switches (SNMP)<br>• Hosts Member Portal | **SEVERITY: MEDIUM**<br>• Existing traffic flows OK.<br>• No new peers can be added.<br>• Blind (No stats/graphs). |
-| **PacIXP-MON** | **VM** (Docker Host) | `SRV-02` | • **Smokeping** (Latency)<br>• **Syslog** Collector | • Pings Member routers<br>• Collects logs | **SEVERITY: LOW**<br>• Loss of historical data.<br>• No alerting on degradation. |
+| **PACIXP-MGMT** | **VM** (Docker Host) | `SRV-01` | • **IXP Manager** (Web/DB)<br>• **Routinator** (RPKI)<br>• **Oxidized** (Backups) | • Pushes configs to RS1/RS2<br>• Polls Switches (SNMP)<br>• Hosts Member Portal | **SEVERITY: MEDIUM**<br>• Existing traffic flows OK.<br>• No new peers can be added.<br>• Blind (No stats/graphs). |
+| **PACIXP-MON** | **VM** (Docker Host) | `SRV-02` | • **Smokeping** (Latency)<br>• **Syslog** Collector | • Pings Member routers<br>• Collects logs | **SEVERITY: LOW**<br>• Loss of historical data.<br>• No alerting on degradation. |
 
 ---
 
-## 4. Container Breakdown (Inside PacIXP-MGMT)
+## 4. Container Breakdown (Inside PACIXP-MGMT)
 
-We use **Docker Compose** inside the `PacIXP-MGMT` VM to orchestrate the application layer.
+We use **Docker Compose** inside the `PACIXP-MGMT` VM to orchestrate the application layer.
 
 | Container Service | Image | Function | Data Persistence |
 | :--- | :--- | :--- | :--- |
@@ -57,21 +57,21 @@ We use **Docker Compose** inside the `PacIXP-MGMT` VM to orchestrate the applica
 ## 5. Critical Interaction Flows
 
 ### Flow 1: Route Server Config Push (The "Brain to Body" Link)
-*   **Source:** `PacIXP-MGMT` (Container: `ixp-cron`)
-*   **Destination:** `PacIXP-RS1` (VM)
+*   **Source:** `PACIXP-MGMT` (Container: `ixp-cron`)
+*   **Destination:** `PACIXP-RS1` (VM)
 *   **Protocol:** API / SSH
 *   **Mechanism:** IXP Manager generates a new `bird.conf`, connects to RS1, validates the config, and triggers a reload.
 *   **Failure Mode:** If MGMT is down, RS1 keeps running with the *old* configuration.
 
 ### Flow 2: RPKI Validation (The Security Link)
-*   **Source:** `PacIXP-RS1` (VM)
-*   **Destination:** `PacIXP-MGMT` (Container: `routinator`)
+*   **Source:** `PACIXP-RS1` (VM)
+*   **Destination:** `PACIXP-MGMT` (Container: `routinator`)
 *   **Protocol:** RTR (Port 3323)
 *   **Mechanism:** BIRD queries Routinator for the validity of a prefix (Valid/Invalid/Unknown).
-*   **Failure Mode:** If Routinator is down, BIRD maintains its *last known cache* for ~1 hour. After that, it fails open (allows all) or fails closed (blocks all) depending on config. *PacIXP Default: Fail Open (Warn).*
+*   **Failure Mode:** If Routinator is down, BIRD maintains its *last known cache* for ~1 hour. After that, it fails open (allows all) or fails closed (blocks all) depending on config. *PACIXP Default: Fail Open (Warn).*
 
 ### Flow 3: Switch Statistics (The Visibility Link)
-*   **Source:** `PacIXP-MGMT` (Container: `ixp-cron`)
+*   **Source:** `PACIXP-MGMT` (Container: `ixp-cron`)
 *   **Destination:** Physical Switches (Arista/Juniper)
 *   **Protocol:** SNMPv2c
 *   **Mechanism:** Polls octet counters every 5 minutes.
@@ -86,15 +86,15 @@ We use **Docker Compose** inside the `PacIXP-MGMT` VM to orchestrate the applica
 *   **Automatic Response:** None (Automatic failover of databases can be risky).
 *   **Manual Recovery:**
     1.  Log into `SRV-02` Proxmox.
-    2.  Locate the Replicated `PacIXP-MGMT` VM.
+    2.  Locate the Replicated `PACIXP-MGMT` VM.
     3.  Right-click -> **Start**.
     4.  Update DNS if IP changed (Use a Floating IP to avoid this).
 *   **RTO (Recovery Time):** < 15 Minutes.
 
 ### B. "Route Server" Death
-*   **Scenario:** `PacIXP-RS1` OS corruption.
+*   **Scenario:** `PACIXP-RS1` OS corruption.
 *   **Impact:** Members lose sessions to RS1.
-*   **Resilience:** Members automatically rely on `PacIXP-RS2` (Active-Active). Traffic is unaffected.
+*   **Resilience:** Members automatically rely on `PACIXP-RS2` (Active-Active). Traffic is unaffected.
 *   **Recovery:** Reinstall RS1 VM via Ansible/Script, or restore from last night's backup.
 
 ### C. Total Site Power Loss

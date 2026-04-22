@@ -1,8 +1,8 @@
-# PacIXP High-Level Design (HLD)
+# PACIXP High-Level Design (HLD)
 
 | Document Details | |
 | :--- | :--- |
-| **Project** | Pacific Islands Internet Exchange (PacIXP) |
+| **Project** | Pacific Islands Internet Exchange (PACIXP) |
 | **Version** | 1.0 (Release Candidate) |
 | **Status** | Engineering Review |
 | **Architecture** | EVPN-VXLAN Collapsed Core |
@@ -12,7 +12,7 @@
 
 ## 1. Executive Summary
 
-PacIXP is a distributed Internet Exchange Point designed to keep local traffic local across the Pacific Islands. Unlike traditional centralized IXPs, PacIXP utilizes a **Geographically Distributed Fabric**.
+PACIXP is a distributed Internet Exchange Point designed to keep local traffic local across the Pacific Islands. Unlike traditional centralized IXPs, PACIXP utilizes a **Geographically Distributed Fabric**.
 
 The architecture decouples the physical location of the member from the logical peering LAN. Using **EVPN-VXLAN** technology, we extend a single, secure Layer 2 peering domain across multiple island nations (initially Samoa and Fiji) over standard Layer 3 IP transport.
 
@@ -107,7 +107,7 @@ The overlay simulates the "Big Layer 2 Switch" that members plug into.
 
 ## 4. Addressing Plan
 
-PacIXP will utilize APNIC-assigned resources. For this design, we use documentation prefixes.
+PACIXP will utilize APNIC-assigned resources. For this design, we use documentation prefixes.
 
 ### 4.0 BGP Confederation Sub-AS Assignments
 

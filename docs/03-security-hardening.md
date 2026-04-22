@@ -1,8 +1,8 @@
-# PacIXP Security Hardening Guide
+# PACIXP Security Hardening Guide
 
 | Document Details | |
 | :--- | :--- |
-| **Project** | Pacific Islands Internet Exchange (PacIXP) |
+| **Project** | Pacific Islands Internet Exchange (PACIXP) |
 | **Domain** | Infrastructure Security & Information Assurance |
 | **Compliance** | **MANRS for IXPs**, Euro-IX BCP |
 | **Enforcement** | Mandatory on all production nodes |
@@ -11,7 +11,7 @@
 
 ## 1. Security Philosophy
 
-The security model of PacIXP is based on the **"Zero Trust Fabric"** principle.
+The security model of PACIXP is based on the **"Zero Trust Fabric"** principle.
 1.  **Protect the Fabric:** No single member should be able to disrupt the exchange for others (Loop prevention, Storm control).
 2.  **Protect the Routing:** Route Servers must filter bad routing data (RPKI, Bogons).
 3.  **Protect the Management:** The control plane must be isolated from the peering plane.
@@ -56,7 +56,7 @@ Applied as an Ingress ACL on every member port.
 The Route Servers (RS) act as the trust brokers. We use **BIRD 2.x** to enforce strict routing hygiene.
 
 ### 3.1 MANRS Compliance Actions
-PacIXP adheres to the [MANRS IXP Programme](https://www.manrs.org/).
+PACIXP adheres to the [MANRS IXP Programme](https://www.manrs.org/).
 
 *   **Action 1 (Prevent Incorrect Routing) — Two-Layer Filtering Model:**
 
@@ -140,7 +140,7 @@ Before enabling a member port `no shutdown`:
 ### 5.3 Incident Response Contacts
 In the event of a security incident (DDoS, Route Hijack):
 
-*   **Internal Emergency:** `noc@PacIXP.net` / `+679-XXX-XXXX`
+*   **Internal Emergency:** `noc@PACIXP.net` / `+679-XXX-XXXX`
 *   **Upstream CERT:** [PacCERT / APNIC CERT Contact]
 *   **Global Reach:** [PeeringDB Entry URL]
 

@@ -1,12 +1,12 @@
-# PacIXP Design Principles
+# PACIXP Design Principles
 
 | Document Details | |
 | :--- | :--- |
-| **Project** | Pacific Islands Internet Exchange (PacIXP) |
+| **Project** | Pacific Islands Internet Exchange (PACIXP) |
 | **Status** | Normative — review before any architectural change |
 | **Purpose** | Govern all design decisions across the fabric, configs, and operations |
 
-This document is the authoritative statement of *why* PacIXP is built the way it is. Every significant change to the architecture, configuration templates, or operational procedures should be evaluated against these principles before being accepted. When a proposed change conflicts with a principle, the conflict must be explicitly acknowledged and resolved — either by rejecting the change or by updating this document with a documented rationale.
+This document is the authoritative statement of *why* PACIXP is built the way it is. Every significant change to the architecture, configuration templates, or operational procedures should be evaluated against these principles before being accepted. When a proposed change conflicts with a principle, the conflict must be explicitly acknowledged and resolved — either by rejecting the change or by updating this document with a documented rationale.
 
 ---
 

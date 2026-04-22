@@ -20,7 +20,7 @@ This configuration mirrors the Arista example but utilizes Juniper's specific EV
 
 ```junos
 /* 
- * Device: PacIX-SiteA-SW1 (Juniper QFX5200)
+ * Device: PACIXP-SiteA-SW1 (Juniper QFX5200)
  * Role:   Leaf / VTEP
  * OS:     Junos OS 18.x or later recommended
  */
@@ -29,7 +29,7 @@ This configuration mirrors the Arista example but utilizes Juniper's specific EV
  * SYSTEM & MANAGEMENT
  * ------------------------------------------------------------------ */
 system {
-    host-name PacIX-SiteA-SW1;
+    host-name PACIXP-SiteA-SW1;
     root-authentication {
         /* REPLACE THIS HASH IMMEDIATELY */
         encrypted-password "$6$SALT$HASH_GOES_HERE...";

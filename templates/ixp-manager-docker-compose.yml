@@ -87,10 +87,67 @@ services:
     networks:
       - ixp-backend
 
+  # ------------------------------------------------------------------
+  # RPKI VALIDATOR (Routinator)
+  # ------------------------------------------------------------------
+  routinator:
+    image: nlnetlabs/routinator:latest
+    restart: unless-stopped
+    volumes:
+      - routinator-data:/home/routinator/.rpki-cache
+    # RTR protocol on 3323, HTTP metrics on 8080
+    ports:
+      - "3323:3323"
+      - "8080:8080"
+    networks:
+      - ixp-backend
+
+  # ------------------------------------------------------------------
+  # CONFIG BACKUP (Oxidized)
+  # ------------------------------------------------------------------
+  oxidized:
+    image: oxidized/oxidized:latest
+    restart: unless-stopped
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./oxidized:/root/.config/oxidized
+    environment:
+      - OXIDIZED_RELOAD_INTERVAL=3600
+    networks:
+      - ixp-backend
+
+  # ------------------------------------------------------------------
+  # MONITORING (LibreNMS)
+  # ------------------------------------------------------------------
+  librenms:
+    image: librenms/librenms:latest
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - ./librenms:/data
+    environment:
+      - TZ=Pacific/Samoa
+      - PUUID=1000
+      - PGID=1000
+      - DB_HOST=db
+      - DB_NAME=librenms
+      - DB_USER=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+    depends_on:
+      - db
+      - redis
+    networks:
+      - ixp-backend
+
 volumes:
   db-data:
     driver: local
   ixp-storage:
+    driver: local
+  routinator-data:
     driver: local
 
 networks:

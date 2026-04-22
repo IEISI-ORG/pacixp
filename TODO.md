@@ -1,4 +1,4 @@
-# PacIXP TODO
+# PACIXP TODO
 
 Work identified during code review. Grouped by priority.
 
@@ -7,123 +7,84 @@ Work identified during code review. Grouped by priority.
 ## Critical (Blocking Production Deployment)
 
 ### HTTPS/TLS Not Configured for IXP Manager
-- `templates/ixp-manager-docker-compose.yml` only exposes port 80 (HTTP)
-- `docs/05-ixp-manager.md` has no SSL/TLS setup instructions
-- Add nginx SSL config, Let's Encrypt certificate setup, and HTTP→HTTPS redirect
-- Mark plain HTTP deployment as a security risk
+- `templates/ixp-manager-docker-compose.yml` exposes port 443 but has no SSL volume or config.
+- `docs/05-ixp-manager.md` has no SSL/TLS setup instructions and uses `http://` in examples.
+- **Need:** Add Nginx SSL config template, Let's Encrypt / Certbot instructions, and force HTTP→HTTPS redirect.
 
 ### RPKI Cache Expiry Policy is "Fail Open"
-- `strategy/virtualization.md` line 71 documents RPKI cache expiry behavior as "Fail Open (Warn)"
-- During a cache outage, IRR prefix filters (from member AS-SETs) remain active and reject anything outside the member's declared policy — this limits the blast radius to routes within a member's own AS-SET that lack valid ROAs
-- Residual risk: a hijack of a prefix that IS in the member's AS-SET but from a different origin AS would pass IRR and slip through RPKI during the outage window
-- Change to "Fail Closed" in `strategy/virtualization.md`, or document explicit risk acceptance with reference to IRR mitigation
+- `strategy/virtualization.md` documents RPKI behavior as "Fail Open (Warn)".
+- **Need:** Change to "Fail Closed" in `strategy/virtualization.md` and ensure `rs1.cfg` reflects this (currently uses `import all`).
+
+### Incomplete Lab Topology
+- `labs/pacixp.clabs.yml` references `.conf` files, but repo uses `.cfg` extension.
+- Only `member1.cfg` exists; `member2.cfg` through `member5.cfg` are missing.
+- `rs1` node in `labs/pacixp.clabs.yml` is missing `ip addr add` for IPv6 address `3fff:0:1::fe/64`.
+- **Need:** Rename files to match `.clabs.yml` (or vice versa), generate missing member configs, and fix IPv6 address assignment.
 
 ---
 
 ## High Priority (Operational Gaps)
 
 ### No Backup/Restore Procedures for IXP Manager
-- `strategy/automation.md` mentions "hourly DB dumps" but no procedure is documented anywhere
-- Need: backup script or cron command, offsite storage guidance, and a tested restore procedure
-- Without this, a DB corruption event means permanent data loss
+- `strategy/automation.md` mentions "hourly DB dumps" but no script or procedure exists.
+- **Need:** Create a backup script (DB + `.env` + storage volume), offsite storage guidance (e.g., S3/RSYNC), and a restore runbook.
 
 ### No Monitoring & Alerting Setup
-- No documentation for alert thresholds, on-call escalation, or paging configuration
-- Should cover: BGP session down, high error rate on member ports, RPKI validator staleness, disk/memory thresholds
-- Prometheus/Grafana or MRTG + Smokeping integration should be documented end-to-end
+- [x] Added LibreNMS service to `templates/ixp-manager-docker-compose.yml`.
+- [x] Documented LibreNMS + Oxidized integration in `strategy/automation.md`.
+- **Need:** Add alert thresholds for BGP drops/high error rates to documentation.
 
 ### No Zero-Downtime Upgrade Procedures
-- No runbook for upgrading BIRD, IXP Manager, switches, or Routinator without member impact
-- At minimum, document: rolling upgrade approach, pre-upgrade health checks, rollback steps
+- No runbook for upgrading BIRD, IXP Manager, or switches without member impact.
+- **Need:** Document rolling upgrade approach (maintenance of one RS while other stays active).
 
-### Missing Member Lab Configs
-- `labs/pacixp.clabs.yml` references `member2.cfg` through `member5.cfg` under `labs/configs/peers/`
-- Only `member1.cfg` exists — the lab topology cannot be deployed as documented
-- Add the missing configs or provide a generation script
+### Missing Core Automation Script
+- `strategy/automation.md` references `ixp-manager-bird-api`.
+- **Need:** Add the script to the repo or provide a link/instructions on how to generate it.
 
 ---
 
 ## Medium Priority (Completeness & Accuracy)
 
-### Missing Files Referenced in Docs
-| File | Referenced In | Status |
-|------|--------------|--------|
-| `ixp-manager-bird-api` script | `strategy/automation.md` | Missing — not in repo |
-| Member config snippets (Cisco, MikroTik) | `strategy/onboarding.md` | Missing |
+### No IPv6 Route Server Sessions
+- `labs/configs/rs1.cfg` has IPv6 templates but the individual `protocol bgp` blocks are IPv4 only.
+- `labs/configs/peers/member1.cfg` has an IPv6 neighbor but it will never come up.
+- **Need:** Add dual-stack sessions to `rs1.cfg`.
 
-### No IPv6 Route Server Configuration
-- Design claims dual-stack (IPv4 + IPv6), but `labs/configs/rs1.cfg` only shows IPv4 BGP
-- `labs/configs/peers/member1.cfg` explicitly disables IPv6 (`no ipv6 forwarding`)
-- Add IPv6 BIRD protocol blocks to `rs1.cfg` and a dual-stack member peering example
+### No Cron Image Version Pinning
+- `templates/ixp-manager-docker-compose.yml` uses `inex/ixp-manager:latest`.
+- **Need:** Pin to a specific version (e.g., `v6.3.0`) to ensure reproducible deployments.
 
-### No Cron Image Version Pinning in Docker Compose
-- `templates/ixp-manager-docker-compose.yml` uses `inex/ixp-manager:latest`
-- `latest` is not reproducible — a breaking upstream release will silently break deployments
-- Pin to a specific version tag (e.g., `v6.3.0`) and document the upgrade process
+### SNMP Community Security
+- `configs/switches/arista_sw1.md` uses `PACIXP-public`.
+- **Need:** Add a prominent warning comment *at the line* where the community string is defined.
 
-### SNMP Community String in Switch Configs
-- `configs/switches/arista_sw1.md` uses example community string `pacix-public`
-- Add a prominent comment that this must be replaced with a site-specific randomized string before deployment
-
-### Lab Route Server Has No Security Filtering
-- `labs/configs/rs1.cfg`: `export all` and `import all` are used as placeholders with a comment saying "filter this in production"
-- Add at minimum bogon filtering and a basic IRR/RPKI filter demonstration so the lab reflects the production security posture
-
-### Lab Switches Missing OSPF Underlay Config
-- `labs/configs/sw1.cfg` and `sw2.cfg` reference BGP neighbors at Layer-3 IPs but don't include the OSPF underlay that makes those IPs reachable
-- Either add OSPF config to the lab switches or add static routes — the current configs are incomplete and won't work as-is
-
-### Lab Configs Not Marked as "Lab Only"
-- `labs/configs/sw1.cfg` and `sw2.cfg` lack ACLs, storm control, port security, and BPDU guard
-- Add a prominent `# LAB ONLY — NOT FOR PRODUCTION` header to prevent accidental use as a production template
+### Lab Route Server Security Filtering
+- `labs/configs/rs1.cfg` uses `import all` / `export all`.
+- **Need:** Add basic bogon and RPKI/IRR filter examples so the lab reflects production security.
 
 ---
 
 ## Low Priority (Polish & Nice-to-Have)
 
 ### Create `docs/02-addressing-plan.md`
-- Provide an IP address allocation worksheet covering: loopback ranges, P-P link ranges, peering LAN (IPv4 + IPv6), management VLAN, and ASN allocation guidance for member registration
+- Provide an IP allocation worksheet (Loopbacks, P-P, Peering LAN, MGMT).
 
 ### Create `BOM.csv` (Bill of Materials)
-- Hardware recommendations (Arista, Juniper options), rough costs, power/rack requirements
-- Useful for grant applications and procurement planning
+- Hardware recommendations and power/rack requirements.
 
-### Add EdgeCore / Cisco / MikroTik Configuration Examples
-- `strategy/onboarding.md` promises config snippets for Cisco IOS, Juniper, and MikroTik but none are provided
-- At minimum, add a basic MikroTik BGP peering example (most common member device in Pacific Island networks)
+### Missing Member Config Snippets
+- [x] Add basic BGP peering templates for Cisco, MikroTik, and Juniper in `strategy/onboarding.md`.
 
 ### Document Oxidized Configuration
-- `strategy/automation.md` mentions Oxidized for switch config backups but provides no setup instructions
-- Add Oxidized credentials setup (SSH key), device list format, and Git repo integration
-
-### Document RPKI Validator (Routinator) Setup
-- Routinator is listed as a container in `strategy/virtualization.md` but has no setup runbook
-- Add: install steps, initial RPKI data sync, integration with BIRD, cache refresh frequency
-
-### Add IRR Fetching Detail to Automation Docs
-- `strategy/automation.md` does not mention which tool fetches IRR data (bgpq4? bgpq3?) or how to configure it
-- Add tool name, install steps, and the cron schedule used to refresh prefix lists
+- [x] Added setup instructions and configuration examples to `strategy/automation.md`.
+- [x] Added Oxidized service to `templates/ixp-manager-docker-compose.yml`.
 
 ### Expand Lab to Test Failure Scenarios
-- Current lab only validates the happy path (L2 reachability, BGP up, route exchange)
-- Add test cases for: switch failure (VXLAN failover), route server failure (members fall back to direct peering or graceful shutdown), member MAC violation (quarantine VLAN activation)
+- Add scenarios for switch failure (VXLAN failover) and RS failure.
 
-### Define Member SLAs in Onboarding Docs
-- `strategy/onboarding.md` uses "Day 0-2" / "Day 3" timelines but no explicit commitments
-- Define: maximum time from port request to go-live, BGP session recovery time objective, escalation path if deadline is missed
-
-### Separate Management VLANs for RS and MGMT VMs
-- `strategy/virtualization.md` puts RS VMs and MGMT VMs on the same VLAN 99
-- Recommend splitting into VLAN 98 (MGMT infrastructure) and VLAN 99 (Route Server management) for blast-radius reduction
-
-### Add Proxmox Cluster/HA Documentation
-- `strategy/virtualization.md` describes single-node Proxmox; ZFS replication is mentioned but not detailed
-- Document multi-node Proxmox cluster setup (or at least ZFS send/receive replication schedule) for HA
+### Define Member SLAs
+- Define commitments for port provisioning and BGP recovery.
 
 ### Add `containerlab destroy` to Lab README
-- `labs/README.md` only shows the deploy command; no teardown instruction
-- Add cleanup command and note about image disk space
-
-### Add cEOS Image Import Instructions to Lab README
-- `labs/README.md` does not mention that `ceos:4.32.0F` must be imported manually before deployment
-- Without this, `containerlab deploy` fails with a cryptic error
+- Add cleanup instructions and notes about cEOS image imports.

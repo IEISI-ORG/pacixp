@@ -19,13 +19,13 @@ It implements the security policies defined in the hardening guide and the EVPN-
 ### File: `configs/switches/arista/sw1-example.cfg`
 
 ```eos
-! device: PacIX-SiteA-SW1 (DCS-7050SX3-48YC8)
+! device: PACIXP-SiteA-SW1 (DCS-7050SX3-48YC8)
 ! boot system flash:/EOS-4.28.0F.swi
 !
 ! ------------------------------------------------------------------
 ! SYSTEM & MANAGEMENT
 ! ------------------------------------------------------------------
-hostname PacIX-SiteA-SW1
+hostname PACIXP-SiteA-SW1
 !
 ! Dedicated Management VRF to isolate control plane from data plane
 vrf definition MGMT
@@ -225,7 +225,7 @@ router bgp 64501
 ! ------------------------------------------------------------------
 !
 ! SNMP for Monitoring (IXP Manager)
-snmp-server community pacix-public ro
+snmp-server community PACIXP-public ro
 !
 ! NTP (Critical for logs)
 ntp server 0.pool.ntp.org
