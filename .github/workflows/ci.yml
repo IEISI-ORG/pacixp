@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  # ----------------------------------------------------------------
+  # Job 1: Markdown Lint
+  # Catches style/formatting issues in all docs we own.
+  # documents/ and reviews/ are third-party or generated -- excluded.
+  # ----------------------------------------------------------------
+  markdown-lint:
+    name: Markdown lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DavidAnson/markdownlint-cli2-action@v16
+        with:
+          globs: |
+            **/*.md
+            !documents/**
+            !reviews/**
+
+  # ----------------------------------------------------------------
+  # Job 2: Internal file reference check
+  # Verifies that markdown links pointing to local files are not broken.
+  # ----------------------------------------------------------------
+  doc-references:
+    name: Internal doc references
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check internal file references
+        run: bash .github/scripts/check-doc-references.sh
+
+  # ----------------------------------------------------------------
+  # Job 3: Config regression checks
+  # Flags known-bad patterns that correspond to open TODO items.
+  # A failing check here means a TODO item has been missed or re-introduced.
+  # ----------------------------------------------------------------
+  config-regression:
+    name: Config regression checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check config regressions
+        run: bash .github/scripts/check-config-regressions.sh
+
+  # ----------------------------------------------------------------
+  # Job 4: Lab topology sanity
+  # Verifies bind-mount source files exist and the README deploy
+  # command references the correct topology filename.
+  # ----------------------------------------------------------------
+  lab-topology:
+    name: Lab topology sanity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - run: pip install pyyaml
+      - name: Check lab topology
+        run: python .github/scripts/check-lab-topology.py
+
+  # ----------------------------------------------------------------
+  # Job 5: TODO consistency
+  # If a TODO checkbox [x] claims a service was added to the compose
+  # file, verifies the service is actually present.
+  # ----------------------------------------------------------------
+  todo-consistency:
+    name: TODO consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check TODO consistency
+        run: bash .github/scripts/check-todo-consistency.sh

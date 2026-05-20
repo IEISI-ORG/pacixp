@@ -30,10 +30,9 @@ Work identified during code review. Grouped by priority.
 - The existing TODO item about "Fail Closed" only addresses the policy doc; this means RPKI is fully disabled in the only RS config in the repo.
 - **Need:** Uncomment the RPKI block in `rs1.cfg` (after fixing the Routinator gap below).
 
-### Routinator Container Missing from Compose
-- `strategy/virtualization.md` lists `nlnetlabs/routinator` as a required service; `rs1.cfg` references it at `203.0.113.50:3323`.
-- It is absent from `templates/ixp-manager-docker-compose.yml` entirely, making RPKI enforcement undeployable end-to-end.
-- **Need:** Add `nlnetlabs/routinator` service to the compose file with its RPKI cache volume and RTR port 3323 exposed to the backend network.
+### ~~Routinator Container Missing from Compose~~ ✓ Done
+- `nlnetlabs/routinator` is present in `templates/ixp-manager-docker-compose.yml` with RPKI cache volume and RTR port 3323.
+- Remaining: pin to a specific image tag (tracked under "No Cron Image Version Pinning").
 
 ---
 
@@ -44,7 +43,7 @@ Work identified during code review. Grouped by priority.
 - **Need:** Create a backup script (DB + `.env` + storage volume), offsite storage guidance (e.g., S3/RSYNC), and a restore runbook.
 
 ### No Monitoring & Alerting Setup
-- [ ] Add LibreNMS service to `templates/ixp-manager-docker-compose.yml`.
+- [x] Add LibreNMS service to `templates/ixp-manager-docker-compose.yml`.
 - [x] Documented LibreNMS + Oxidized integration in `strategy/automation.md`.
 - **Need:** Add alert thresholds for BGP drops/high error rates to documentation.
 
@@ -157,7 +156,7 @@ Work identified during code review. Grouped by priority.
 
 ### Document Oxidized Configuration
 - [x] Added setup instructions and configuration examples to `strategy/automation.md`.
-- [ ] Add Oxidized service (and its git volume) to `templates/ixp-manager-docker-compose.yml`.
+- [x] Add Oxidized service (and its git volume) to `templates/ixp-manager-docker-compose.yml`.
 
 ### Document IPv6 ND Multicast Exception to No-Multicast Rule
 - The Pacific-IXP Operating Guideline states the no-multicast rule as: "no multicast frames *except* IPv6 Neighbour Discovery." This exception is not documented anywhere in PACIXP.

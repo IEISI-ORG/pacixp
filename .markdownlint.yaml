@@ -1,0 +1,20 @@
+# Markdownlint configuration for PACIXP technical documentation
+# documents/ and reviews/ are excluded via the CI workflow globs
+
+default: true
+
+# Line length — impractical for config tables and command examples
+MD013: false
+
+# Duplicate headings — multiple sections legitimately share names (e.g. "Example")
+MD024: false
+
+# Inline HTML — used for table formatting in design docs
+MD033: false
+
+# First line must be a heading — some docs start with a metadata table
+MD041: false
+
+# Ordered list numbering — tolerate "1. 1. 1." style
+MD029:
+  style: "ordered"
