@@ -250,6 +250,28 @@ Sub-ASes used for BGP confederation members (one per site) do **not** require RI
 
 ---
 
+### DP-14 — Two-Layer Event Detection for Operational Observability
+
+> **Every significant operational event must be captured by two independent mechanisms: an immediate event-driven path and a periodic polling fallback. Neither path is the only path.**
+
+| Event | Event-driven path | Polling fallback |
+| :--- | :--- | :--- |
+| Config change on a switch | Syslog → rsyslog → Oxidized API | Oxidized interval poll (default 1 h) |
+| BGP session state change | IXP Manager / Birdseye API | LibreNMS SNMP polling |
+| Member port link state | SNMP trap (if configured) | LibreNMS SNMP polling |
+
+**Rules:**
+
+- The event-driven path provides speed; the polling fallback provides the guaranteed floor. Either path failing independently must not result in a blind spot.
+- UDP syslog is acceptable as the event transport precisely *because* the polling fallback exists. A lost UDP syslog packet costs at most one polling interval — not a missed event.
+- All operational event data must flow over the management plane (DP-7 applies). Syslog, SNMP, and API calls between monitoring components use management VRF addresses only.
+- A single UDP 514 receiver must handle syslog from all network devices on the host. Applications that need syslog (Oxidized trigger, LibreNMS ingestion) attach processing rules to that shared receiver — never open a second listener.
+- Event-triggered actions (e.g. `curl /node/next/<name>`) must tolerate silent failure gracefully. The fallback poll absorbs failures without operator intervention.
+
+*Why:* UDP syslog drops packets. Automation scripts time out. APIs return 404 when hostnames don't match. Any single-path operational monitoring system will have gaps — and in an IXP those gaps appear at the worst possible moment (during a change, when you most need the backup). Mandating two independent paths means no individual failure mode creates a blind spot. The design also keeps individual components simple: the syslog trigger does not need to be reliable because the poll is; the poll does not need to be fast because the trigger is.
+
+---
+
 ## 2. Architecture Decisions
 
 These are the specific choices that implement the governing principles. They are decisions, not suggestions.

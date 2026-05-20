@@ -168,11 +168,23 @@ If the automation server (IXP Manager) dies, the network **must stay up**.
     The `interval: 3600` in the Oxidized config is a fallback poll. To capture
     config changes the moment they are committed, switches send syslog to the
     IXP Manager host and rsyslog calls the Oxidized HTTP API immediately.
+    This is DP-14: the syslog trigger is the fast path; the polling interval
+    is the guaranteed fallback.
 
-    *On the IXP Manager host* — create `/etc/rsyslog.d/40-oxidized.conf`:
+    **⚠️ Single rsyslog input — avoid duplicate `$UDPServerRun 514`**
+
+    LibreNMS syslog ingestion (if enabled) will also require rsyslog to receive
+    on UDP 514. Duplicate `$UDPServerRun` directives in separate `.conf` files
+    will prevent rsyslog from starting. Consolidate all syslog input config into
+    one file (`/etc/rsyslog.d/30-network-devices.conf`) that is loaded before
+    any per-application rules:
 
     ```text
-    # Receive UDP syslog from network devices on the management network
+    # /etc/rsyslog.d/30-network-devices.conf
+    # Single UDP receiver for all network device syslog.
+    # Both the Oxidized trigger (below) and any LibreNMS forwarding rules
+    # must reference this shared input — never add a second $UDPServerRun 514.
+
     $ModLoad imudp
     $UDPServerRun 514
 
@@ -185,7 +197,23 @@ If the automation server (IXP Manager) dies, the network **must stay up**.
     if $fromhost-ip startswith '203.0.113.' \
        and $msg contains 'UI_COMMIT_COMPLETED' \
        then ^/usr/local/bin/oxidized-trigger;%HOSTNAME%
+
+    # LibreNMS syslog forwarding goes here if/when enabled — see LibreNMS docs
     ```
+
+    **⚠️ Hostname matching**
+
+    `%HOSTNAME%` is the value the switch puts in its syslog header — its
+    configured `hostname`. Oxidized node names come from LibreNMS, which uses
+    SNMP `sysName`. These usually match, but verify by running:
+
+    ```bash
+    curl -s http://localhost:8888/nodes | python3 -m json.tool | grep name
+    ```
+
+    If the Oxidized node name differs (e.g. FQDN vs short name), the trigger
+    silently does nothing and the fallback poll catches the change instead.
+    Adjust the trigger script to normalise the name if needed.
 
     *Trigger script* — `/usr/local/bin/oxidized-trigger`:
 
@@ -193,6 +221,7 @@ If the automation server (IXP Manager) dies, the network **must stay up**.
     #!/bin/bash
     # Called by rsyslog with the device hostname as $1.
     # Asks Oxidized to immediately poll that node.
+    # Uses omprog-compatible single-argument form.
     NODE="$1"
     curl -sf "http://localhost:8888/node/next/${NODE}" >/dev/null
     ```
