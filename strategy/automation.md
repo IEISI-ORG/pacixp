@@ -109,7 +109,8 @@ If the automation server (IXP Manager) dies, the network **must stay up**.
 2.  **Config Backups (Oxidized):**
     We use **Oxidized** to automatically poll switches and commit changes to a Git repository.
 
-    #### Oxidized Setup Instructions
+    **Oxidized Setup Instructions**
+
     1.  **Directory Structure:**
         Create the configuration directory: `mkdir -p /opt/ixp-manager/oxidized`.
     2.  **Configuration (`oxidized/config`):**
@@ -154,7 +155,8 @@ If the automation server (IXP Manager) dies, the network **must stay up**.
             local: /root/.config/oxidized/configs.git
         ```
 
-    #### LibreNMS + Oxidized Integration
+    **LibreNMS + Oxidized Integration**
+
     To enable the "Config" tab in LibreNMS:
     1.  **LibreNMS Side:** Go to `Global Settings -> External Settings -> Oxidized`.
     2.  **Enable:** Set `Enable Oxidized` to `ON`.
