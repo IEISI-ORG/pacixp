@@ -51,29 +51,20 @@ Work identified during code review. Grouped by priority.
 - `strategy/automation.md` references `ixp-manager-bird-api`.
 - **Need:** Add the script to the repo or provide a link/instructions on how to generate it.
 
-### Ethertype Filtering Missing from Switch Configs
-- Both MANRS Action 3 and the Pacific-IXP Operating Guideline require L2 ethertype filtering on member ports: allow only 0x0800 (IPv4), 0x0806 (ARP), 0x86DD (IPv6); drop all other frame types.
-- Neither `configs/switches/arista_sw1.md` nor `configs/switches/juniper_sw1.md` implements this. The current IP ACLs operate at L3 and cannot see non-IP frames (STP, LACP, CDP, etc.) at all.
-- Note: `bpduguard` and `no lldp` on the Arista config partially mitigate this, but proper ethertype filtering is more comprehensive and is what MANRS Action 3 specifically requires.
-- **Need:** Add ethertype/MAC filter to both Arista and Juniper member port templates permitting only IPv4/ARP/IPv6 frames and dropping all others.
+### ~~Ethertype Filtering Missing from Switch Configs~~ ✓ Done
+- `IXP-ETHERTYPE-FILTER` MAC ACL added to Arista; `IXP-ETHERTYPE-FILTER` firewall filter added to Juniper. Applied first on all member ports; drops IS-IS, CDP, LACP, and all other non-IP/ARP/IPv6 frames at L2.
 
-### Port-Security Violation Action Needs Review ⚠️ *requires design decision*
-- `configs/switches/arista_sw1.md:128` uses `switchport port-security violation protect`, which silently drops frames from unknown MACs with no log, no SNMP trap, and no port shutdown.
-- `docs/00-design-principles.md:95` says "drop on violation" — `protect` does drop, but the Global IXP Toolkit BCP says ports should "automatically close down" when a violation is detected.
-- `restrict` (drop + syslog/SNMP trap) or `shutdown` (auto-disable port) are the alternatives. For an IXP, `shutdown` risks taking down a legitimate member's port on router reboot; `restrict` provides alerting without service disruption.
-- **Need:** Decide whether `restrict` or `shutdown` is the right policy for PACIXP member ports, document the rationale in DP-6, and update the Arista and Juniper templates accordingly.
+### ~~Port-Security Violation Action~~ ✓ Done — `restrict` chosen
+- Arista: `violation restrict`; Juniper: `packet-action drop-and-log`. Port stays up; syslog/SNMP trap fires on unknown MAC. Rationale documented in DP-6.
 
 ### ~~Juniper Storm-Control Functionally Disabled~~ ✓ Done
 - Three `no-*-suppression` flags removed from `IXP-STORM-PROFILE`; `bandwidth-level 10000` now applies to broadcast and multicast per DP-6.
 
-### ACL-IXP-PEERING-V4 Missing IGP Drop Rules
-- `configs/switches/arista_sw1.md:50-56`: The ACL blocks DHCP then ends with `permit ip any any`, never dropping OSPF (proto 89), EIGRP (proto 88), or IS-IS.
-- DP-6 and `docs/03-security-hardening.md:48` both list "Drop OSPF/IS-IS/EIGRP" as non-negotiable. A member with active OSPF can form adjacency across the peering LAN.
-- **Need:** Add `deny ospf any any`, `deny eigrp any any`, and IS-IS Ethertype deny entries before the final permit; apply equivalent rules in the Juniper filter.
+### ~~ACL-IXP-PEERING-V4 Missing IGP Drop Rules~~ ✓ Done
+- Arista: `deny ospf any any` and `deny eigrp any any` added before final permit. IS-IS covered by ethertype filter. Juniper: `BLOCK-IGP` term added to `ACL-IXP-PEERING-V4` matching `protocol [ ospf 88 ]`.
 
-### README Badge Overstates Deployment Readiness
-- `README.md:3` badge reads `Production Ready`; `docs/01-high-level-design.md:7` says `Engineering Review`; this TODO file has three unresolved Critical items.
-- **Need:** Change the badge to `Engineering Review`; update to `Production Ready` only when all Critical items are resolved.
+### ~~README Badge Overstates Deployment Readiness~~ ✓ Done
+- Badge changed to `Engineering Review`. Update to `Production Ready` when all remaining High items are resolved.
 
 ---
 

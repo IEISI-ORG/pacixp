@@ -1,6 +1,6 @@
 # Pacific Islands Internet Exchange (PACIXP) Reference Design
 
-![Status](https://img.shields.io/badge/Status-Production%20Ready-green)
+![Status](https://img.shields.io/badge/Status-Engineering%20Review-yellow)
 ![License](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-blue)
 ![Standards](https://img.shields.io/badge/Compliance-MANRS-orange)
 

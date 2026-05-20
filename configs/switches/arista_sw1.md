@@ -46,13 +46,17 @@ spanning-tree edge-port bpduguard default
 ! SECURITY ACLs (The "Clean Pipe")
 ! ------------------------------------------------------------------
 !
-! IPv4: Block DHCP (client and server) — no dynamic addressing on the peering fabric
+! IPv4: Block DHCP and IGP — no dynamic addressing or routing adjacencies on the peering fabric
 ip access-list ACL-IXP-PEERING-V4
    10 remark "Block DHCP client and server (no dynamic addressing on IXP fabric)"
    20 deny udp any any eq bootps
    30 deny udp any any eq bootpc
-   40 remark "Permit all other IXP traffic"
-   50 permit ip any any
+   40 remark "Block IGP — members must not form routing adjacencies across the peering LAN"
+   50 deny ospf any any
+   60 deny eigrp any any
+   70 remark "IS-IS blocked at L2 by IXP-ETHERTYPE-FILTER (non-IP frame)"
+   80 remark "Permit all other IXP traffic"
+   90 permit ip any any
 !
 ! IPv6: Block RA, DHCPv6 client and server — no dynamic addressing on the peering fabric
 ipv6 access-list ACL-IXP-PEERING-V6
@@ -63,6 +67,16 @@ ipv6 access-list ACL-IXP-PEERING-V6
    50 deny udp any any eq dhcpv6-client
    60 remark "Permit all other IXP traffic"
    70 permit ipv6 any any
+!
+! MAC ACL: Ethertype filtering (MANRS Action 3)
+! Permits only IPv4 (0x0800), ARP (0x0806), and IPv6 (0x86DD) frames.
+! All other ethertypes (CDP, STP, LACP, LLDP, IS-IS, etc.) are dropped
+! at L2 before any IP ACL processing reaches the frame.
+mac access-list IXP-ETHERTYPE-FILTER
+   10 permit any any 0x0800
+   20 permit any any 0x0806
+   30 permit any any 0x86DD
+   40 deny any any
 !
 ! ------------------------------------------------------------------
 ! VLAN CONFIGURATION
@@ -121,12 +135,13 @@ interface Ethernet3
    ! Security Application
    ip access-group ACL-IXP-PEERING-V4 in
    ipv6 traffic-filter ACL-IXP-PEERING-V6 in
+   mac access-group IXP-ETHERTYPE-FILTER in
    !
    ! Port Security / Hygiene
    storm-control broadcast level 1.0
    storm-control multicast level 1.0
    switchport port-security maximum 1
-   switchport port-security violation protect
+   switchport port-security violation restrict
    !
    ! Spanning Tree & Discovery hardening
    spanning-tree portfast

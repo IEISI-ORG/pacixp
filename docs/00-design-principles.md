@@ -92,7 +92,7 @@ The following controls are non-negotiable on every member-facing port and are ne
 
 | Control | Mechanism | Why |
 | :--- | :--- | :--- |
-| MAC limit | Port security: max 1 MAC, drop on violation | Prevents MAC table exhaustion and bridging loops |
+| MAC limit | Port security: max 1 MAC; violation action `restrict` (drop + syslog/SNMP trap, port stays up) | Prevents MAC table exhaustion and bridging loops; `shutdown` avoided — it auto-disables the port on any legitimate router reboot |
 | Storm control | Broadcast + multicast ≤ 1% of link | Prevents BUM floods from saturating the fabric |
 | BPDU guard | Drop STP BPDUs; shut port on receipt | Prevents a member's switch from manipulating the spanning tree |
 | RA guard | Drop ICMPv6 Type 134 | Prevents a member from becoming the IPv6 default gateway for the IXP |

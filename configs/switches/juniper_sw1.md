@@ -64,6 +64,30 @@ chassis {
  * ------------------------------------------------------------------ */
 firewall {
     family ethernet-switching {
+        /* Ethertype filter (MANRS Action 3)
+         * Applied first — drops non-IP frames (IS-IS, CDP, LACP, etc.)
+         * before any IP-layer filter runs. */
+        filter IXP-ETHERTYPE-FILTER {
+            term PERMIT-IPV4 {
+                from { ether-type 0x0800; }
+                then accept;
+            }
+            term PERMIT-ARP {
+                from { ether-type 0x0806; }
+                then accept;
+            }
+            term PERMIT-IPV6 {
+                from { ether-type 0x86dd; }
+                then accept;
+            }
+            term BLOCK-ALL {
+                then {
+                    discard;
+                    count ETHERTYPE-DROPS;
+                }
+            }
+        }
+
         /* IPv4 Protection Filter */
         filter ACL-IXP-PEERING-V4 {
             term BLOCK-DHCP {
@@ -72,6 +96,17 @@ firewall {
                     destination-port [ 67 68 ];
                 }
                 then discard;
+            }
+            term BLOCK-IGP {
+                from {
+                    /* OSPF (89) and EIGRP (88) — members must not form
+                     * routing adjacencies across the peering LAN */
+                    protocol [ ospf 88 ];
+                }
+                then {
+                    discard;
+                    count IGP-DROPS;
+                }
             }
             term PERMIT-ALL {
                 then accept;
@@ -184,9 +219,9 @@ interfaces {
                 vlan {
                     members IXP-PEERING-LAN;
                 }
-                /* Apply Security Filters */
+                /* Apply Security Filters — ethertype filter runs first */
                 filter {
-                    input-list [ ACL-IXP-PEERING-V4 ACL-IXP-PEERING-V6 ];
+                    input-list [ IXP-ETHERTYPE-FILTER ACL-IXP-PEERING-V4 ACL-IXP-PEERING-V6 ];
                 }
                 /* Storm Control */
                 storm-control IXP-STORM-PROFILE;
@@ -203,7 +238,10 @@ switch-options {
     interface xe-0/0/0.0 {
         interface-mac-limit {
             limit 1;
-            packet-action drop;
+            /* drop-and-log: drop frames from unknown MACs and generate
+             * a syslog message. Chosen over 'shutdown' to avoid
+             * auto-disabling a member port on legitimate router reboot. */
+            packet-action drop-and-log;
         }
     }
     /* BPDU Block globally on edge ports */
