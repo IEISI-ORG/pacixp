@@ -56,9 +56,9 @@ Applied as an Ingress ACL on every member port.
 The Route Servers (RS) act as the trust brokers. We use **BIRD 2.x** to enforce strict routing hygiene.
 
 ### 3.1 MANRS Compliance Actions
-PACIXP adheres to the [MANRS IXP Programme](https://www.manrs.org/).
+PACIXP adheres to the [MANRS IXP Programme](https://www.manrs.org/ixps/actions/). The programme defines five actions; Actions 1 and 2 are mandatory. PACIXP implements all five. The two actions with direct security-config implications are detailed below; Actions 2, 4, and 5 are covered in the onboarding and operational docs.
 
-*   **Action 1 (Prevent Incorrect Routing) — Two-Layer Filtering Model:**
+*   **Action 1 — Prevent propagation of incorrect routing information (Mandatory):**
 
     Route filtering uses two independent layers applied in sequence on every inbound route. Both must pass for a route to be accepted.
 
@@ -80,9 +80,12 @@ PACIXP adheres to the [MANRS IXP Programme](https://www.manrs.org/).
     *   **Bogon Filtering:** Reject RFC1918, RFC5735 (Special Use), and Multicast ranges.
     *   **Max-Prefix Limits:** Tear down the BGP session if a member announces more than 120% of their expected prefix count. Protects RS RAM/CPU from route table injection attacks.
 
-*   **Action 2 (Prevent Spoofing):**
-    *   **uRPF (Unicast Reverse Path Forwarding):** Enabled on switch ports where hardware supports it (loose mode).
-    *   **ACLs:** Ingress ACLs on the switch allowing traffic *only* from the member's assigned IXP IP address.
+*   **Action 3 — Protect the peering platform:**
+    *   **Ethertype filtering (L2):** Each member port allows only EtherType 0x0800 (IPv4), 0x0806 (ARP), and 0x86DD (IPv6). All other ethertypes are dropped — this blocks CDP, STP, LLDP, LACP, DHCP, and all other non-IP control-plane protocols at the frame level.
+    *   **MAC address locking:** Each member port is statically bound to a single MAC address. Frames sourced from any other MAC are dropped by the switch.
+    *   **Storm control:** Broadcast and multicast capped at ≤ 1% of link capacity on all member ports (stricter than the MANRS-recommended 10%).
+    *   **Proxy-ARP disabled:** All member-facing switch and router interfaces must have Proxy-ARP disabled to prevent ARP hijacking across the peering LAN.
+    *   **Source IP filtering (additional):** Ingress port ACLs (PACLs) allow traffic only from the member's assigned IXP IP address. This is PACIXP policy beyond the MANRS L2 baseline. uRPF is not applicable — member ports are Layer 2 switchports.
 
 ### 3.2 BGP Session Security
 *   **MD5 Passwords:** Optional (adds complexity), but supported if requested.

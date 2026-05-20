@@ -46,22 +46,23 @@ spanning-tree edge-port bpduguard default
 ! SECURITY ACLs (The "Clean Pipe")
 ! ------------------------------------------------------------------
 !
-! IPv4: Block DHCP servers, allow everything else
+! IPv4: Block DHCP (client and server) — no dynamic addressing on the peering fabric
 ip access-list ACL-IXP-PEERING-V4
-   10 remark "Block DHCP BootP Server/Relay"
+   10 remark "Block DHCP client and server (no dynamic addressing on IXP fabric)"
    20 deny udp any any eq bootps
    30 deny udp any any eq bootpc
    40 remark "Permit all other IXP traffic"
    50 permit ip any any
 !
-! IPv6: Block RA (Router Advertisements) and DHCPv6 Servers
+! IPv6: Block RA, DHCPv6 client and server — no dynamic addressing on the peering fabric
 ipv6 access-list ACL-IXP-PEERING-V6
    10 remark "Block IPv6 Router Advertisements (Critical)"
    20 deny icmp any any router-advertisement
-   30 remark "Block DHCPv6 Server"
+   30 remark "Block DHCPv6 client and server (no dynamic addressing on IXP fabric)"
    40 deny udp any any eq dhcpv6-server
-   50 remark "Permit all other IXP traffic"
-   60 permit ipv6 any any
+   50 deny udp any any eq dhcpv6-client
+   60 remark "Permit all other IXP traffic"
+   70 permit ipv6 any any
 !
 ! ------------------------------------------------------------------
 ! VLAN CONFIGURATION

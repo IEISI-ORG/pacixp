@@ -21,6 +21,20 @@ Work identified during code review. Grouped by priority.
 - `rs1` node in `labs/pacixp.clabs.yml` is missing `ip addr add` for IPv6 address `3fff:0:1::fe/64`.
 - **Need:** Rename files to match `.clabs.yml` (or vice versa), generate missing member configs, and fix IPv6 address assignment.
 
+### labs/README.md Deploy Command Broken
+- `labs/README.md:4` uses `pacixp.clab.yml` but the actual topology file is `pacixp.clabs.yml`.
+- **Need:** Correct the filename so the deploy command works for first-time operators.
+
+### RPKI Block Commented Out in rs1.cfg
+- `labs/configs/rs1.cfg:11-13` has the entire `protocol rpki routinator {}` block commented out.
+- The existing TODO item about "Fail Closed" only addresses the policy doc; this means RPKI is fully disabled in the only RS config in the repo.
+- **Need:** Uncomment the RPKI block in `rs1.cfg` (after fixing the Routinator gap below).
+
+### Routinator Container Missing from Compose
+- `strategy/virtualization.md` lists `nlnetlabs/routinator` as a required service; `rs1.cfg` references it at `203.0.113.50:3323`.
+- It is absent from `templates/ixp-manager-docker-compose.yml` entirely, making RPKI enforcement undeployable end-to-end.
+- **Need:** Add `nlnetlabs/routinator` service to the compose file with its RPKI cache volume and RTR port 3323 exposed to the backend network.
+
 ---
 
 ## High Priority (Operational Gaps)
@@ -30,7 +44,7 @@ Work identified during code review. Grouped by priority.
 - **Need:** Create a backup script (DB + `.env` + storage volume), offsite storage guidance (e.g., S3/RSYNC), and a restore runbook.
 
 ### No Monitoring & Alerting Setup
-- [x] Added LibreNMS service to `templates/ixp-manager-docker-compose.yml`.
+- [ ] Add LibreNMS service to `templates/ixp-manager-docker-compose.yml`.
 - [x] Documented LibreNMS + Oxidized integration in `strategy/automation.md`.
 - **Need:** Add alert thresholds for BGP drops/high error rates to documentation.
 
@@ -41,6 +55,32 @@ Work identified during code review. Grouped by priority.
 ### Missing Core Automation Script
 - `strategy/automation.md` references `ixp-manager-bird-api`.
 - **Need:** Add the script to the repo or provide a link/instructions on how to generate it.
+
+### Ethertype Filtering Missing from Switch Configs
+- Both MANRS Action 3 and the Pacific-IXP Operating Guideline require L2 ethertype filtering on member ports: allow only 0x0800 (IPv4), 0x0806 (ARP), 0x86DD (IPv6); drop all other frame types.
+- Neither `configs/switches/arista_sw1.md` nor `configs/switches/juniper_sw1.md` implements this. The current IP ACLs operate at L3 and cannot see non-IP frames (STP, LACP, CDP, etc.) at all.
+- Note: `bpduguard` and `no lldp` on the Arista config partially mitigate this, but proper ethertype filtering is more comprehensive and is what MANRS Action 3 specifically requires.
+- **Need:** Add ethertype/MAC filter to both Arista and Juniper member port templates permitting only IPv4/ARP/IPv6 frames and dropping all others.
+
+### Port-Security Violation Action Needs Review ⚠️ *requires design decision*
+- `configs/switches/arista_sw1.md:128` uses `switchport port-security violation protect`, which silently drops frames from unknown MACs with no log, no SNMP trap, and no port shutdown.
+- `docs/00-design-principles.md:95` says "drop on violation" — `protect` does drop, but the Global IXP Toolkit BCP says ports should "automatically close down" when a violation is detected.
+- `restrict` (drop + syslog/SNMP trap) or `shutdown` (auto-disable port) are the alternatives. For an IXP, `shutdown` risks taking down a legitimate member's port on router reboot; `restrict` provides alerting without service disruption.
+- **Need:** Decide whether `restrict` or `shutdown` is the right policy for PACIXP member ports, document the rationale in DP-6, and update the Arista and Juniper templates accordingly.
+
+### Juniper Storm-Control Functionally Disabled
+- `configs/switches/juniper_sw1.md:113-121`: `IXP-STORM-PROFILE` uses `no-broadcast-suppression`, `no-multicast-suppression`, and `no-unknown-unicast-suppression` inside the `all {}` stanza.
+- In Junos, these flags *exclude* traffic types from the profile, so the 10 Mbps bandwidth-level applies to nothing. Storm control is configured but silently off on all Juniper member ports.
+- **Need:** Remove the three `no-*-suppression` flags so the bandwidth-level applies to broadcast and multicast traffic per DP-6.
+
+### ACL-IXP-PEERING-V4 Missing IGP Drop Rules
+- `configs/switches/arista_sw1.md:50-56`: The ACL blocks DHCP then ends with `permit ip any any`, never dropping OSPF (proto 89), EIGRP (proto 88), or IS-IS.
+- DP-6 and `docs/03-security-hardening.md:48` both list "Drop OSPF/IS-IS/EIGRP" as non-negotiable. A member with active OSPF can form adjacency across the peering LAN.
+- **Need:** Add `deny ospf any any`, `deny eigrp any any`, and IS-IS Ethertype deny entries before the final permit; apply equivalent rules in the Juniper filter.
+
+### README Badge Overstates Deployment Readiness
+- `README.md:3` badge reads `Production Ready`; `docs/01-high-level-design.md:7` says `Engineering Review`; this TODO file has three unresolved Critical items.
+- **Need:** Change the badge to `Engineering Review`; update to `Production Ready` only when all Critical items are resolved.
 
 ---
 
@@ -63,6 +103,45 @@ Work identified during code review. Grouped by priority.
 - `labs/configs/rs1.cfg` uses `import all` / `export all`.
 - **Need:** Add basic bogon and RPKI/IRR filter examples so the lab reflects production security.
 
+### MLPA Template Missing
+- The Pacific-IXP Operating Guideline requires members to execute a Multilateral Peering Agreement (MLPA) with the IXP Association before they can connect to the Route Servers.
+- No MLPA template exists in the repo. `strategy/onboarding.md` describes the technical onboarding process but has no reference to a legal agreement.
+- **Need:** Create an MLPA template (or reference a standard template from Euro-IX/LINX/AMS-IX) and add a signature requirement to the member onboarding checklist.
+
+### BGP Community Policy Undefined ⚠️ *requires design decision*
+- `strategy/onboarding.md` configures `send-community` on member BGP sessions, but PACIXP defines no communities of its own. The Pacific-IXP Operating Guideline explicitly documents BGP communities as a member-facing feature for route control.
+- Standard IXP community sets include: no-export to specific peers, prepend on export, blackhole (65535:666 for RTBH), informational tagging by origin.
+- **Need:** Decide which BGP communities PACIXP Route Servers will accept, process, and advertise; document the community policy; implement in BIRD RS templates. At minimum, the RTBH blackhole community (65535:666) should be considered — it is explicitly called out in the Pacific-IXP guidelines and the MANRS IXP Implementation Guide.
+
+### Investigate RA Guard and IPv6 First Hop Security for Member Ports
+- Member ports currently block Router Advertisements and DHCPv6 servers via `ACL-IXP-PEERING-V6` (L3). This works but has a gap: ICMPv6 Redirect (type 137) is not blocked, and ACL-based RA blocking can be bypassed by fragmented or encapsulated RAs.
+- RA Guard (RFC 6105) is the L2-level mechanism for this — it is structure-aware and handles edge cases ACLs miss. On EOS it is part of the IPv6 First Hop Security (FHS) suite alongside DHCPv6 Guard and ND Inspection. Juniper's implementation differs (under `forwarding-options`).
+- **Need:** Investigate whether RA Guard should replace or supplement the current ACL entries on Arista and Juniper member ports. Determine whether full FHS (RA Guard + DHCPv6 Guard + ICMPv6 Redirect blocking) is appropriate, and test for interactions with BIRD's own NDP behaviour on the route server. Update both switch templates based on findings.
+
+### DP-7 vs DP-12 OOB Addressing Contradiction
+- `docs/00-design-principles.md:111` (DP-7) specifies `192.168.100.0/24` for the OOB management VLAN — an RFC1918 range.
+- DP-12 in the same document prohibits RFC1918 and maps OOB management to `203.0.113.0/24`. The HLD uses `203.0.113.0/24`.
+- **Need:** Update DP-7 to read `203.0.113.0/24` to match DP-12 and the HLD.
+
+### HLD Allows "OSPF or eBGP" for Underlay
+- `docs/01-high-level-design.md:87` says the underlay protocol is "OSPFv2 / OSPFv3 or eBGP".
+- DP-8 explicitly decided OSPF-only; an engineer reading the HLD could choose eBGP, creating a deployment inconsistent with all runbooks.
+- **Need:** Remove "or eBGP" from `docs/01-high-level-design.md:87` and add a reference to the DP-8 decision.
+
+### BGP Timers Missing from Lab Switch Configs
+- `labs/configs/sw1.cfg` and `sw2.cfg` have no `timers` statement on any BGP neighbor.
+- DP-13 says "Never leave timers unset"; `rs1.cfg` sets them explicitly (keepalive 10 / hold 30); the switches default to 30/90.
+- **Need:** Add `neighbor <ip> timers 10 30` to every BGP neighbor in `sw1.cfg` and `sw2.cfg`.
+
+### Backup Cron Exposes DB Password in Process Table
+- `strategy/automation.md:166` uses `mysqldump -u ixp -pPASSWORD`, which exposes the password in `ps` output, shell history, and cron logs.
+- **Need:** Replace with `--defaults-extra-file=/run/secrets/db.cnf` reading credentials from a Docker secret or root-owned `.my.cnf`.
+
+### Runbook Uses RFC1918 Addresses (Violates DP-12)
+- `runbooks/ixp-manager-arista-switch.md:35-36,80,133,139` uses `10.0.0.11`, `192.168.100.50`, and `192.168.100.11` for sFlow and management examples.
+- `configs/switches/arista_sw1.md` uses `203.0.113.11/24` for the same switch's management IP — the two documents directly conflict.
+- **Need:** Replace RFC1918 addresses in the runbook with RFC5737 ranges to align with `arista_sw1.md` and DP-12.
+
 ---
 
 ## Low Priority (Polish & Nice-to-Have)
@@ -78,7 +157,17 @@ Work identified during code review. Grouped by priority.
 
 ### Document Oxidized Configuration
 - [x] Added setup instructions and configuration examples to `strategy/automation.md`.
-- [x] Added Oxidized service to `templates/ixp-manager-docker-compose.yml`.
+- [ ] Add Oxidized service (and its git volume) to `templates/ixp-manager-docker-compose.yml`.
+
+### Document IPv6 ND Multicast Exception to No-Multicast Rule
+- The Pacific-IXP Operating Guideline states the no-multicast rule as: "no multicast frames *except* IPv6 Neighbour Discovery." This exception is not documented anywhere in PACIXP.
+- IPv6 ND (NS/NA, ICMPv6 types 135/136) uses link-local multicast (ff02::1, ff02::2) and must be permitted for IPv6 to function on the peering LAN. The current storm-control at 1% does not block ND in practice, but the exception should be explicit.
+- **Need:** Add a note to `docs/03-security-hardening.md` Action 3 and the switch template comments clarifying that IPv6 ND multicast is intentionally permitted.
+
+### Document Member Traffic Engineering Guidance (Domestic IXP Preference)
+- The Pacific-IXP Operating Guideline notes that members in node-hosting countries with a domestic IXP will have peering sessions across both fabrics for the same local peers, and should use route preferences to direct that traffic through the domestic IXP.
+- This guidance is absent from `strategy/onboarding.md`.
+- **Need:** Add a section to `strategy/onboarding.md` advising dual-connected members to prefer the domestic IXP path using local-preference or MED.
 
 ### Expand Lab to Test Failure Scenarios
 - Add scenarios for switch failure (VXLAN failover) and RS failure.
@@ -88,3 +177,13 @@ Work identified during code review. Grouped by priority.
 
 ### Add `containerlab destroy` to Lab README
 - Add cleanup instructions and notes about cEOS image imports.
+
+### Juniper Member Port Sets Jumbo MTU
+- `configs/switches/juniper_sw1.md` sets `mtu 9216` on the member-facing interface.
+- DP-11 states member devices use standard 1500-byte MTU; the jumbo setting can cause path MTU discovery issues.
+- **Need:** Remove the explicit `mtu 9216` from the Juniper member port reference config.
+
+### Arista Member Port Missing `no ip proxy-arp`
+- EOS enables Proxy-ARP by default; `configs/switches/arista_sw1.md:101` (interface Ethernet3) does not disable it.
+- A member port with Proxy-ARP active may respond to ARP requests for other peers' IPs on the peering LAN.
+- **Need:** Add `no ip proxy-arp` to the Ethernet3 member port template.
