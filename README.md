@@ -6,7 +6,7 @@
 
 ## 🌴 Project Overview
 
-This is an open-source, turnkey network architecture designed for deploying Internet Exchange Points (IXPs) in the Pacific Islands and similar emerging markets. 
+This is an open-source, turnkey network architecture designed for deploying Internet Exchange Points (IXPs) in the Pacific Islands and similar emerging markets.
 
 Designed for resource-constrained environments with high latency and limited local technical expertise, this reference design provides a **modern, scalable, and secure** foundation for local traffic exchange. It moves away from legacy Layer 2 spanning-tree designs to a robust **EVPN/VXLAN** fabric, ensuring stability across geographic distances (e.g., interconnecting islands).
 
@@ -138,7 +138,7 @@ This project is licensed under the **CC BY-NC-SA 4.0** (Creative Commons Attribu
 ### 💼 For Commercial Users
 **Commercial use requires a separate paid license.** Any use by commercial entities — including for-profit data centers, commercial carriers, or paid consultants using this design to deliver client projects — is **not permitted under the CC BY-NC-SA license** and requires a commercial license from **IEISI**, for which a substantial fee applies.
 
-Contact **tcs@ieisi.org** for commercial licensing terms and paid support options.
+Contact **[tcs@ieisi.org](mailto:tcs@ieisi.org)** for commercial licensing terms and paid support options.
 
 **Acknowledgments:**
 *   Based on best practices from **Euro-IX** and **APNIC**.

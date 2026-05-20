@@ -165,7 +165,6 @@ If the automation server (IXP Manager) dies, the network **must stay up**.
     *   **Hourly:** Database dump of IXP Manager to off-site storage.
     *   Example Cron: `0 * * * * docker exec ixp-manager-db-1 mysqldump -u ixp -pPASSWORD ixp > /backups/ixp_$(date +\%H).sql`
 
-
 ---
 
 ## 6. Future Phase: "Run" (Full Automation)

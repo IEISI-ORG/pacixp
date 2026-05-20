@@ -3,8 +3,34 @@
 
 default: true
 
+# --- Correctness rules (kept) ---
+# MD009 no-trailing-spaces, MD012 no-multiple-blanks, MD034 no-bare-urls: enabled
+
+# --- Style rules disabled (docs use consistent 1.  / *   formatting) ---
+
 # Line length — impractical for config tables and command examples
 MD013: false
+
+# List marker spacing — docs use "1.  " / "*   " (2-3 spaces); valid CommonMark
+MD030: false
+
+# Blank lines around lists — too noisy for tightly-coupled prose+list sections
+MD032: false
+
+# Blank lines around headings — style preference, not a rendering issue
+MD022: false
+
+# Unordered list indentation — nested lists use varied indent widths
+MD007: false
+
+# Blank lines around fenced code blocks — style preference
+MD031: false
+
+# Emphasis used instead of heading — intentional for checklist sub-labels
+MD036: false
+
+# Unordered list style — mix of - and * is intentional across files
+MD004: false
 
 # Duplicate headings — multiple sections legitimately share names (e.g. "Example")
 MD024: false
