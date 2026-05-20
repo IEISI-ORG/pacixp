@@ -22,7 +22,7 @@ services:
   # APP SERVICE (IXP Manager Core - PHP-FPM)
   # ------------------------------------------------------------------
   ixp-manager:
-    image: inex/ixp-manager:latest
+    image: inex/ixp-manager:v6.3.0
     restart: unless-stopped
     depends_on:
       - db
@@ -65,7 +65,7 @@ services:
   # Required for generating router configs and updating stats
   # ------------------------------------------------------------------
   cron:
-    image: inex/ixp-manager:latest
+    image: inex/ixp-manager:v6.3.0
     restart: unless-stopped
     depends_on:
       - db
@@ -91,7 +91,7 @@ services:
   # RPKI VALIDATOR (Routinator)
   # ------------------------------------------------------------------
   routinator:
-    image: nlnetlabs/routinator:latest
+    image: nlnetlabs/routinator:0.14.1
     restart: unless-stopped
     volumes:
       - routinator-data:/home/routinator/.rpki-cache
@@ -106,7 +106,7 @@ services:
   # CONFIG BACKUP (Oxidized)
   # ------------------------------------------------------------------
   oxidized:
-    image: oxidized/oxidized:latest
+    image: oxidized/oxidized:0.29.1
     restart: unless-stopped
     ports:
       - "8888:8888"
@@ -121,7 +121,7 @@ services:
   # MONITORING (LibreNMS)
   # ------------------------------------------------------------------
   librenms:
-    image: librenms/librenms:latest
+    image: librenms/librenms:24.10.0
     restart: unless-stopped
     ports:
       - "8000:80"

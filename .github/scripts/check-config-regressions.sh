@@ -81,9 +81,11 @@ fi
 #    TODO: "Juniper Member Port Sets Jumbo MTU" (Low)
 #    DP-11 specifies 1500-byte MTU for member devices; mtu 9216 can
 #    cause path MTU discovery issues for members.
+#    Infrastructure (INFRA:) interfaces legitimately use mtu 9216.
+#    Check only within 8 lines after a MEMBER: description line.
 # ------------------------------------------------------------------
-if grep -q 'mtu 9216' configs/switches/juniper_sw1.md; then
-  fail "'mtu 9216' found on member port in configs/switches/juniper_sw1.md — remove per DP-11"
+if grep -A8 'MEMBER:' configs/switches/juniper_sw1.md | grep -q 'mtu 9216'; then
+  fail "'mtu 9216' found within a MEMBER port block in configs/switches/juniper_sw1.md — remove per DP-11"
 else
   pass "No jumbo MTU on Juniper member port"
 fi

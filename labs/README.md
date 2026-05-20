@@ -2,7 +2,7 @@
 
 1.  **Deploy:**
     ```bash
-    sudo containerlab deploy --topo pacixp.clab.yml
+    sudo containerlab deploy --topo pacixp.clabs.yml
     ```
 
 2.  **Verify VXLAN (L2 Stretch):**

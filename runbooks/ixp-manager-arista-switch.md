@@ -31,9 +31,9 @@ snmp-server location "Apia Cable Landing Station, Rack 3"
 
 ! 3. Enable sFlow (Traffic Statistics)
 ! This sends traffic samples to IXP Manager for graphing
-! Replace 192.168.100.50 with your IXP Manager Docker Host IP
-sflow source 10.0.0.11
-sflow destination 192.168.100.50 6343
+! Replace 203.0.113.50 with your IXP Manager Docker Host IP
+sflow source 203.0.113.11
+sflow destination 203.0.113.50 6343
 sflow polling-interval 20
 sflow sample 1024
 sflow run
@@ -75,7 +75,7 @@ Log in to your IXP Manager Web GUI (`http://<your-ip>/admin`).
 2.  Click **Add Switch**.
 3.  Fill in the **General** tab:
     *   **Name:** `PACIXP-SiteA-SW1`
-    *   **Hostname/IP:** `192.168.100.11` (The Management IP).
+    *   **Hostname/IP:** `203.0.113.11` (The Management IP).
     *   **Type:** `Arista Switches (EOS)`.
     *   **Cabinet:** Select `Site A - Rack 1`.
 4.  Fill in the **Poller** tab (Critical for Graphs):
@@ -132,11 +132,11 @@ For this Reference Design, we rely on **SNMP Polling** as the primary method bec
 **Problem: "SNMP Timeout" or "Device not reachable"**
 *   **Cause:** The Docker container cannot route to the Switch Management IP.
 *   **Fix:**
-    *   Check if the Switch Mgmt IP (`192.168.100.11`) is reachable from the Docker Host.
+    *   Check if the Switch Mgmt IP (`203.0.113.11`) is reachable from the Docker Host.
     *   If using Mac/Windows Docker Desktop, routing can be tricky. On Linux, it usually works if the host can ping the switch.
     *   Try pinging from inside the container:
         ```bash
-        docker compose exec ixp-manager ping 192.168.100.11
+        docker compose exec ixp-manager ping 203.0.113.11
         ```
 
 **Problem: Ports list is empty**

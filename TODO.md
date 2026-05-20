@@ -15,20 +15,16 @@ Work identified during code review. Grouped by priority.
 - `strategy/virtualization.md` documents RPKI behavior as "Fail Open (Warn)".
 - **Need:** Change to "Fail Closed" in `strategy/virtualization.md` and ensure `rs1.cfg` reflects this (currently uses `import all`).
 
-### Incomplete Lab Topology
-- `labs/pacixp.clabs.yml` references `.conf` files, but repo uses `.cfg` extension.
-- Only `member1.cfg` exists; `member2.cfg` through `member5.cfg` are missing.
-- `rs1` node in `labs/pacixp.clabs.yml` is missing `ip addr add` for IPv6 address `3fff:0:1::fe/64`.
-- **Need:** Rename files to match `.clabs.yml` (or vice versa), generate missing member configs, and fix IPv6 address assignment.
+### Incomplete Lab Topology — partially resolved
+- [x] `.conf`/`.cfg` extension mismatch fixed in `labs/pacixp.clabs.yml`.
+- [x] `member2.cfg`–`member5.cfg` created in `labs/configs/peers/`.
+- [ ] `rs1` node still missing `ip addr add` for IPv6 peering address `3fff:0:1::fe/64` in `labs/pacixp.clabs.yml`.
 
-### labs/README.md Deploy Command Broken
-- `labs/README.md:4` uses `pacixp.clab.yml` but the actual topology file is `pacixp.clabs.yml`.
-- **Need:** Correct the filename so the deploy command works for first-time operators.
+### ~~labs/README.md Deploy Command Broken~~ ✓ Done
+- Deploy command corrected to `pacixp.clabs.yml`.
 
-### RPKI Block Commented Out in rs1.cfg
-- `labs/configs/rs1.cfg:11-13` has the entire `protocol rpki routinator {}` block commented out.
-- The existing TODO item about "Fail Closed" only addresses the policy doc; this means RPKI is fully disabled in the only RS config in the repo.
-- **Need:** Uncomment the RPKI block in `rs1.cfg` (after fixing the Routinator gap below).
+### ~~RPKI Block Commented Out in rs1.cfg~~ ✓ Done
+- `protocol rpki routinator {}` uncommented; points to `172.17.0.1:3323` (Docker bridge gateway) for lab use.
 
 ### ~~Routinator Container Missing from Compose~~ ✓ Done
 - `nlnetlabs/routinator` is present in `templates/ixp-manager-docker-compose.yml` with RPKI cache volume and RTR port 3323.
@@ -67,10 +63,8 @@ Work identified during code review. Grouped by priority.
 - `restrict` (drop + syslog/SNMP trap) or `shutdown` (auto-disable port) are the alternatives. For an IXP, `shutdown` risks taking down a legitimate member's port on router reboot; `restrict` provides alerting without service disruption.
 - **Need:** Decide whether `restrict` or `shutdown` is the right policy for PACIXP member ports, document the rationale in DP-6, and update the Arista and Juniper templates accordingly.
 
-### Juniper Storm-Control Functionally Disabled
-- `configs/switches/juniper_sw1.md:113-121`: `IXP-STORM-PROFILE` uses `no-broadcast-suppression`, `no-multicast-suppression`, and `no-unknown-unicast-suppression` inside the `all {}` stanza.
-- In Junos, these flags *exclude* traffic types from the profile, so the 10 Mbps bandwidth-level applies to nothing. Storm control is configured but silently off on all Juniper member ports.
-- **Need:** Remove the three `no-*-suppression` flags so the bandwidth-level applies to broadcast and multicast traffic per DP-6.
+### ~~Juniper Storm-Control Functionally Disabled~~ ✓ Done
+- Three `no-*-suppression` flags removed from `IXP-STORM-PROFILE`; `bandwidth-level 10000` now applies to broadcast and multicast per DP-6.
 
 ### ACL-IXP-PEERING-V4 Missing IGP Drop Rules
 - `configs/switches/arista_sw1.md:50-56`: The ACL blocks DHCP then ends with `permit ip any any`, never dropping OSPF (proto 89), EIGRP (proto 88), or IS-IS.
@@ -90,9 +84,9 @@ Work identified during code review. Grouped by priority.
 - `labs/configs/peers/member1.cfg` has an IPv6 neighbor but it will never come up.
 - **Need:** Add dual-stack sessions to `rs1.cfg`.
 
-### No Cron Image Version Pinning
-- `templates/ixp-manager-docker-compose.yml` uses `inex/ixp-manager:latest`.
-- **Need:** Pin to a specific version (e.g., `v6.3.0`) to ensure reproducible deployments.
+### ~~No Cron Image Version Pinning~~ ✓ Done
+- All compose images pinned: `inex/ixp-manager:v6.3.0`, `nlnetlabs/routinator:0.14.1`, `oxidized/oxidized:0.29.1`, `librenms/librenms:24.10.0`.
+- Verify pinned tags are still current before production deployment.
 
 ### SNMP Community Security
 - `configs/switches/arista_sw1.md` uses `PACIXP-public`.
@@ -136,10 +130,8 @@ Work identified during code review. Grouped by priority.
 - `strategy/automation.md:166` uses `mysqldump -u ixp -pPASSWORD`, which exposes the password in `ps` output, shell history, and cron logs.
 - **Need:** Replace with `--defaults-extra-file=/run/secrets/db.cnf` reading credentials from a Docker secret or root-owned `.my.cnf`.
 
-### Runbook Uses RFC1918 Addresses (Violates DP-12)
-- `runbooks/ixp-manager-arista-switch.md:35-36,80,133,139` uses `10.0.0.11`, `192.168.100.50`, and `192.168.100.11` for sFlow and management examples.
-- `configs/switches/arista_sw1.md` uses `203.0.113.11/24` for the same switch's management IP — the two documents directly conflict.
-- **Need:** Replace RFC1918 addresses in the runbook with RFC5737 ranges to align with `arista_sw1.md` and DP-12.
+### ~~Runbook Uses RFC1918 Addresses (Violates DP-12)~~ ✓ Done
+- All RFC1918 addresses in `runbooks/ixp-manager-arista-switch.md` replaced with RFC5737 ranges consistent with `arista_sw1.md`.
 
 ---
 
@@ -177,10 +169,8 @@ Work identified during code review. Grouped by priority.
 ### Add `containerlab destroy` to Lab README
 - Add cleanup instructions and notes about cEOS image imports.
 
-### Juniper Member Port Sets Jumbo MTU
-- `configs/switches/juniper_sw1.md` sets `mtu 9216` on the member-facing interface.
-- DP-11 states member devices use standard 1500-byte MTU; the jumbo setting can cause path MTU discovery issues.
-- **Need:** Remove the explicit `mtu 9216` from the Juniper member port reference config.
+### ~~Juniper Member Port Sets Jumbo MTU~~ ✓ Done
+- `mtu 9216` removed from member port `xe-0/0/0` in `configs/switches/juniper_sw1.md`; infrastructure interfaces retain jumbo MTU.
 
 ### Arista Member Port Missing `no ip proxy-arp`
 - EOS enables Proxy-ARP by default; `configs/switches/arista_sw1.md:101` (interface Ethernet3) does not disable it.

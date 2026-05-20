@@ -111,10 +111,8 @@ forwarding-options {
     storm-control-profiles {
         IXP-STORM-PROFILE {
             all {
-                bandwidth-level 10000; /* Limit to ~10Mbps or 1% */
-                no-broadcast-suppression;
-                no-multicast-suppression;
-                no-unknown-unicast-suppression; 
+                bandwidth-level 10000; /* Limit to ~10Mbps or 1% of link capacity */
+                /* No no-*-suppression flags: bandwidth-level applies to broadcast and multicast */
             }
         }
     }
@@ -179,7 +177,7 @@ interfaces {
     /* Example Member Port */
     xe-0/0/0 {
         description "MEMBER: ISP-A (AS65001)";
-        mtu 9216; /* Allow jumbo frames for peering */
+        /* No explicit MTU: member ports use standard 1500-byte MTU per DP-11 */
         unit 0 {
             family ethernet-switching {
                 interface-mode access;
