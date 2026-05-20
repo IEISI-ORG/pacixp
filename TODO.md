@@ -15,10 +15,10 @@ Work identified during code review. Grouped by priority.
 - `strategy/virtualization.md` documents RPKI behavior as "Fail Open (Warn)".
 - **Need:** Change to "Fail Closed" in `strategy/virtualization.md` and ensure `rs1.cfg` reflects this (currently uses `import all`).
 
-### Incomplete Lab Topology — partially resolved
-- [x] `.conf`/`.cfg` extension mismatch fixed in `labs/pacixp.clabs.yml`.
+### ~~Incomplete Lab Topology~~ ✓ Done
+- [x] `.conf`/`.cfg` extension mismatch fixed in `labs/pacixp.clabs.yml`; container-side paths restored to `.conf` (BIRD/FRR standard locations).
 - [x] `member2.cfg`–`member5.cfg` created in `labs/configs/peers/`.
-- [ ] `rs1` node still missing `ip addr add` for IPv6 peering address `3fff:0:1::fe/64` in `labs/pacixp.clabs.yml`.
+- [x] `rs1` exec now assigns both `192.0.2.254/24` and `3fff:0:1::fe/64` on `eth1`.
 
 ### ~~labs/README.md Deploy Command Broken~~ ✓ Done
 - Deploy command corrected to `pacixp.clabs.yml`.
