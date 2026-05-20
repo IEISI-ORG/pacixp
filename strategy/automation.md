@@ -163,6 +163,49 @@ If the automation server (IXP Manager) dies, the network **must stay up**.
     3.  **URL:** Set `Oxidized URL` to `http://oxidized:8888`.
     4.  **Source:** This configuration allows LibreNMS to feed the device list *to* Oxidized and display the retrieved configs back in the UI.
 
+    **Syslog Trigger (Real-Time Backups)**
+
+    The `interval: 3600` in the Oxidized config is a fallback poll. To capture
+    config changes the moment they are committed, switches send syslog to the
+    IXP Manager host and rsyslog calls the Oxidized HTTP API immediately.
+
+    *On the IXP Manager host* — create `/etc/rsyslog.d/40-oxidized.conf`:
+
+    ```text
+    # Receive UDP syslog from network devices on the management network
+    $ModLoad imudp
+    $UDPServerRun 514
+
+    # Trigger Oxidized backup on Arista config commit
+    if $fromhost-ip startswith '203.0.113.' \
+       and $msg contains 'CONFIG_SESSION_COMMIT' \
+       then ^/usr/local/bin/oxidized-trigger;%HOSTNAME%
+
+    # Trigger Oxidized backup on Juniper config commit
+    if $fromhost-ip startswith '203.0.113.' \
+       and $msg contains 'UI_COMMIT_COMPLETED' \
+       then ^/usr/local/bin/oxidized-trigger;%HOSTNAME%
+    ```
+
+    *Trigger script* — `/usr/local/bin/oxidized-trigger`:
+
+    ```bash
+    #!/bin/bash
+    # Called by rsyslog with the device hostname as $1.
+    # Asks Oxidized to immediately poll that node.
+    NODE="$1"
+    curl -sf "http://localhost:8888/node/next/${NODE}" >/dev/null
+    ```
+
+    ```bash
+    chmod +x /usr/local/bin/oxidized-trigger
+    systemctl restart rsyslog
+    ```
+
+    Switch-side syslog configuration is already included in the Arista and
+    Juniper reference configs (`logging host 203.0.113.50` /
+    `syslog { host 203.0.113.50 { ... } }`).
+
 3.  **Database Backups:**
     *   **Hourly:** Database dump of IXP Manager to off-site storage.
     *   Example Cron: `0 * * * * docker exec ixp-manager-db-1 mysqldump -u ixp -pPASSWORD ixp > /backups/ixp_$(date +\%H).sql`

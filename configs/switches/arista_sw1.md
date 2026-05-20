@@ -253,5 +253,12 @@ sflow polling-interval 20
 sflow sample 1024
 sflow run
 !
+! Syslog — sends config-change events to IXP Manager host.
+! rsyslog on the host matches CONFIG_SESSION_COMMIT and calls the
+! Oxidized API to trigger an immediate backup of this node.
+logging host 203.0.113.50
+logging trap informational
+logging format timestamp traditional year
+!
 end
 ```

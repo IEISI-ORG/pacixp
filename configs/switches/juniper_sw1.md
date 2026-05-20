@@ -43,8 +43,21 @@ system {
             ssh;
         }
     }
+    /* Syslog — sends config-change events to IXP Manager host.
+     * rsyslog on the host matches UI_COMMIT_COMPLETED and calls the
+     * Oxidized API to trigger an immediate backup of this node. */
+    syslog {
+        host 203.0.113.50 {
+            any info;
+            change-log any;
+        }
+        file messages {
+            any notice;
+            authorization info;
+        }
+    }
     /* Dedicated Management Interface (me0) */
-    management-instance; 
+    management-instance;
 }
 
 /* ------------------------------------------------------------------
