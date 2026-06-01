@@ -110,7 +110,7 @@ This design is strictly aligned with **MANRS (Mutually Agreed Norms for Routing 
 | Feature | Implementation |
 | :--- | :--- |
 | **Action 1: Prevent Propagation of Incorrect Routing** | Route Servers configured with RPKI (Routinator) and IRR filtering. |
-| **Action 2: Prevent Traffic with Spoofed Source IP** | Strict uRPF and ACLs on switch ports; No Proxy-ARP. |
+| **Action 2: Prevent Traffic with Spoofed Source IP** | Strict uRPF and ACLs on switch ports. |
 | **Action 3: Protect the Peering Platform** | BPDU Guard, Storm Control, IPv6 RA Guard, Port Security. |
 | **Action 4: Facilitate Global Communication** | Standard contact info published in PeeringDB (via IXP Manager). |
 | **Action 5: Provide Monitoring and Debugging** | Looking Glass and public traffic statistics enabled. |

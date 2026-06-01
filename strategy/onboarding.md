@@ -80,14 +80,14 @@ router bgp 65000
  !
  address-family ipv4
   neighbor 192.0.2.254 activate
-  neighbor 192.0.2.254 send-community
-  neighbor 192.0.2.254 next-hop-self
+  neighbor 192.0.2.254 send-community        ! required for RTBH (65535:666)
+  ! Do NOT add next-hop-self — the RS requires your peering IP as next-hop
  exit-address-family
  !
  address-family ipv6
   neighbor 3fff:0:1::fe activate
-  neighbor 3fff:0:1::fe send-community
-  neighbor 3fff:0:1::fe next-hop-self
+  neighbor 3fff:0:1::fe send-community       ! required for RTBH (65535:666)
+  ! Do NOT add next-hop-self — the RS requires your peering IP as next-hop
  exit-address-family
 ```
 
@@ -128,6 +128,70 @@ protocols {
     }
 }
 ```
+
+### DDoS Blackholing (RFC 7999 RTBH)
+
+If your network is under a volumetric DDoS attack, PACIXP route servers support **Remotely Triggered Black Hole (RTBH)**. You can instruct all RS peers to null-route traffic destined for the victim address before it reaches your port.
+
+**One-time setup — static discard routes (required):**
+
+```ios
+! Cisco IOS / IOS-XE / Arista EOS
+ip route 192.0.2.0 255.255.255.255 Null0
+ipv6 route 3fff:0:1::/128 Null0
+```
+```routeros
+# MikroTik RouterOS v7
+/ip route add dst-address=192.0.2.0/32 blackhole
+/ipv6 route add dst-address=3fff:0:1::/128 blackhole
+```
+```junos
+# Juniper Junos
+routing-options {
+    static {
+        route 192.0.2.0/32 discard;
+        route 3fff:0:1::/128 discard;
+    }
+}
+```
+
+**During an attack — announce the victim /32 with community `65535:666`:**
+
+```ios
+! Cisco IOS / IOS-XE
+ip community-list standard RTBH permit 65535:666
+!
+route-map RTBH-EXPORT permit 10
+ set community 65535:666
+!
+ip route 203.0.113.1 255.255.255.255 Null0  ! victim host route
+!
+router bgp 65000
+ network 203.0.113.1 mask 255.255.255.255 route-map RTBH-EXPORT
+```
+```routeros
+# MikroTik RouterOS v7
+/ip route add dst-address=203.0.113.1/32 blackhole
+/routing bgp network add network=203.0.113.1/32 community=65535:666
+```
+```junos
+# Juniper Junos
+policy-options {
+    community rtbh members 65535:666;
+    policy-statement RTBH-EXPORT {
+        term victim {
+            from route-filter 203.0.113.1/32 exact;
+            then { community set rtbh; accept; }
+        }
+    }
+}
+```
+
+**To withdraw:** Remove the /32 announcement. The blackhole is lifted automatically.
+
+> **Restrictions enforced by the RS:** Only /32 (IPv4) and /128 (IPv6) host routes are accepted with community `65535:666`. Broader prefixes are rejected. The RS automatically adds `NO_EXPORT` so the blackhole does not propagate beyond the IXP into member upstreams.
+
+---
 
 ### The Onboarding Workflow
 

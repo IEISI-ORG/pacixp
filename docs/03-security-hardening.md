@@ -84,15 +84,36 @@ PACIXP adheres to the [MANRS IXP Programme](https://www.manrs.org/ixps/actions/)
     *   **Ethertype filtering (L2):** Each member port allows only EtherType 0x0800 (IPv4), 0x0806 (ARP), and 0x86DD (IPv6). All other ethertypes are dropped — this blocks CDP, STP, LLDP, LACP, DHCP, and all other non-IP control-plane protocols at the frame level.
     *   **MAC address locking:** Each member port is statically bound to a single MAC address. Frames sourced from any other MAC are dropped by the switch.
     *   **Storm control:** Broadcast and multicast capped at ≤ 1% of link capacity on all member ports (stricter than the MANRS-recommended 10%).
-    *   **Proxy-ARP disabled:** All member-facing switch and router interfaces must have Proxy-ARP disabled to prevent ARP hijacking across the peering LAN.
     *   **Source IP filtering (additional):** Ingress port ACLs (PACLs) allow traffic only from the member's assigned IXP IP address. This is PACIXP policy beyond the MANRS L2 baseline. uRPF is not applicable — member ports are Layer 2 switchports.
 
 ### 3.2 BGP Session Security
-*   **MD5 Passwords:** Optional (adds complexity), but supported if requested.
+*   **MD5 Passwords:** Not recommended on RS sessions. MD5 provides no meaningful protection against on-path attackers in 2025 and adds rotation overhead without benefit over GTSM + source-IP ACLs already in place. If a member insists, document the operational overhead and require a change-management window for key rotation.
 *   **GTSM (Generalized TTL Security Mechanism):**
     *   Enforce `TTL=255` on BGP packets.
     *   Rejects packets coming from multiple hops away.
 *   **No Export:** Route Servers must typically configured with `export: none` (transparent) or extremely strict export filters so they don't leak the global routing table to members.
+
+### 3.3 BGP Community Policy (RTBH)
+
+PACIXP implements **RFC 7999 Remotely Triggered Black Hole (RTBH)** as the sole supported BGP community action. No other communities are processed by the route servers.
+
+| Attribute | Value |
+| :--- | :--- |
+| **Community** | `65535:666` (RFC 7999) |
+| **Accepted prefix lengths** | `/32` (IPv4) and `/128` (IPv6) only |
+| **Discard next-hop (IPv4)** | `192.0.2.0` |
+| **Discard next-hop (IPv6)** | `3fff:0:1::` |
+| **Auto-added by RS** | `NO_EXPORT (65535:65281)` |
+
+**How the RS processes an RTBH request:**
+1. A member announces a victim /32 with community `65535:666` to the RS.
+2. The RS validates the prefix length — broader prefixes are rejected to prevent a member from accidentally silencing a whole block.
+3. The RS rewrites the next-hop to the pre-agreed discard address and adds `NO_EXPORT (65535:65281)` so the blackhole does not propagate beyond the IXP.
+4. All RS peers receive the route. Each peer must have a static null route to the discard address (see member Welcome Pack) to drop matching traffic at their edge.
+
+**Why this matters for Pacific IXPs:** Pacific Island networks are frequent targets of volumetric DDoS traffic originating outside the region. RTBH allows a member to shed attack traffic at the IXP before it exhausts their uplink — it is the primary DDoS mitigation tool available to members without a dedicated scrubbing service.
+
+> **RTBH is not a substitute for upstream filtering.** It stops inbound traffic at IXP peers but does not affect transit-sourced traffic. Members should also register with their upstream provider's RTBH community scheme.
 
 ---
 

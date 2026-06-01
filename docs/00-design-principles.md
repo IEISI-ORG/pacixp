@@ -138,7 +138,7 @@ The MANRS IXP Programme defines five actions. Actions 1 and 2 are mandatory; at 
 
 1. **Prevent propagation of incorrect routing information** *(mandatory)* — IRR prefix filtering (bgpq4/AS-SET) at import and RPKI ROV at export enforced on all route server sessions; bogon and max-prefix filters applied in addition.
 2. **Promote MANRS to the IXP membership** *(mandatory)* — Onboarding includes assistance with IRR/RPKI registration (Action 2-1) and MANRS guidance (Action 2-2); MANRS participation is indicated on the member list via IXP Manager (Action 2-3).
-3. **Protect the peering platform** — Published policy of traffic not permitted on the peering fabric; L2 ethertype filtering (allow only IPv4/ARP/IPv6); MAC address locking (one MAC per port, statically bound); storm control on all member ports; Proxy-ARP disabled on all member-facing interfaces.
+3. **Protect the peering platform** — Published policy of traffic not permitted on the peering fabric; L2 ethertype filtering (allow only IPv4/ARP/IPv6); MAC address locking (one MAC per port, statically bound); storm control on all member ports.
 4. **Facilitate global operational communication and coordination** — Valid NOC email and phone maintained for the IXP and verified for each member at onboarding (≤72-hour response); peering, technical, and members mailing lists maintained; PeeringDB kept current; IXP Manager exports to IX-F; RIR Whois records kept accurate.
 5. **Provide monitoring and debugging tools to members** — Route server looking glass available to all members for BGP debugging and prefix lookup.
 

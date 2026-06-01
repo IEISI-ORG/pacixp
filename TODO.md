@@ -83,19 +83,24 @@ Work identified during code review. Grouped by priority.
 - `configs/switches/arista_sw1.md` uses `PACIXP-public`.
 - **Need:** Add a prominent warning comment *at the line* where the community string is defined.
 
-### Lab Route Server Security Filtering
-- `labs/configs/rs1.cfg` uses `import all` / `export all`.
-- **Need:** Add basic bogon and RPKI/IRR filter examples so the lab reflects production security.
+### ~~Lab Route Server Security Filtering~~ ✓ Done
+- [x] `import all` replaced with `import filter`; kernel protocol fixed to `import/export none`.
+- [x] `BOGONS_V4` / `BOGONS_V6` prefix sets defined; `bogon_filter_v4/v6()` functions active in member template.
+- [x] Prefix-length guards: IPv4 /8–/24, IPv6 /16–/48.
+- [x] `import limit 200 / 100 action block` max-prefix guards in each channel.
+- [x] IRR and RPKI gate stubs (commented) in filter body showing production insertion points.
+- RFC5737 lab ranges (192.0.2.0/24, 198.51.100.0/24, 203.0.113.0/24) and RFC9637 (3fff::/20) omitted from bogon sets with comments — lab uses these for peering/test addresses.
 
 ### MLPA Template Missing
 - The Pacific-IXP Operating Guideline requires members to execute a Multilateral Peering Agreement (MLPA) with the IXP Association before they can connect to the Route Servers.
 - No MLPA template exists in the repo. `strategy/onboarding.md` describes the technical onboarding process but has no reference to a legal agreement.
 - **Need:** Create an MLPA template (or reference a standard template from Euro-IX/LINX/AMS-IX) and add a signature requirement to the member onboarding checklist.
 
-### BGP Community Policy Undefined ⚠️ *requires design decision*
-- `strategy/onboarding.md` configures `send-community` on member BGP sessions, but PACIXP defines no communities of its own. The Pacific-IXP Operating Guideline explicitly documents BGP communities as a member-facing feature for route control.
-- Standard IXP community sets include: no-export to specific peers, prepend on export, blackhole (65535:666 for RTBH), informational tagging by origin.
-- **Need:** Decide which BGP communities PACIXP Route Servers will accept, process, and advertise; document the community policy; implement in BIRD RS templates. At minimum, the RTBH blackhole community (65535:666) should be considered — it is explicitly called out in the Pacific-IXP guidelines and the MANRS IXP Implementation Guide.
+### ~~BGP Community Policy Undefined~~ ✓ Done — RFC 7999 RTBH fully implemented
+- Decision (2026-06-01): RTBH (`65535:666`) only. No informational tagging or selective no-export at this time.
+- [x] `labs/configs/rs1.cfg` — `rtbh_import_v4()` / `rtbh_import_v6()` filter functions; `/32` + `/128` enforcement; `NO_EXPORT` tagging; BH next-hop rewrite to `192.0.2.0` / `3fff:0:1::`.
+- [x] `docs/03-security-hardening.md` — new §3.3 documents policy, discard addresses, and Pacific DDoS context. MD5 guidance updated to "not recommended."
+- [x] `strategy/onboarding.md` — RTBH usage section with per-vendor examples (Cisco, MikroTik, Juniper); `send-community` annotated as required for RTBH; `next-hop-self` removed from Cisco RS session templates.
 
 ### Investigate RA Guard and IPv6 First Hop Security for Member Ports
 - Member ports currently block Router Advertisements and DHCPv6 servers via `ACL-IXP-PEERING-V6` (L3). This works but has a gap: ICMPv6 Redirect (type 137) is not blocked, and ACL-based RA blocking can be bypassed by fragmented or encapsulated RAs.
@@ -163,7 +168,3 @@ Work identified during code review. Grouped by priority.
 ### ~~Juniper Member Port Sets Jumbo MTU~~ ✓ Done
 - `mtu 9216` removed from member port `xe-0/0/0` in `configs/switches/juniper_sw1.md`; infrastructure interfaces retain jumbo MTU.
 
-### Arista Member Port Missing `no ip proxy-arp`
-- EOS enables Proxy-ARP by default; `configs/switches/arista_sw1.md:101` (interface Ethernet3) does not disable it.
-- A member port with Proxy-ARP active may respond to ARP requests for other peers' IPs on the peering LAN.
-- **Need:** Add `no ip proxy-arp` to the Ethernet3 member port template.
